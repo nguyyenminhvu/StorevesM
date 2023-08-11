@@ -1,0 +1,7 @@
+namespace: storeves-pj
+SA_PASSWORD: Cat3gory!
+SA_PASSWORD: Produc1!
+kubectl get secret -n storeves-pj
+kubectl get pod -n storeves-pj
+kubectl get deployment -n storeves-pj
+kubectl get service -n storeves-pj
