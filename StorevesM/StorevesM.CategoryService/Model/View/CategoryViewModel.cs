@@ -1,15 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace StorevesM.CategoryService.Entity
+namespace StorevesM.CategoryService.Model.View
 {
-    public class Category
+    public class CategoryViewModel
     {
-        [Key]
-        [Required]
         public int Id { get; set; }
 
-        [Required]
         public string Name { get; set; }
-
     }
 }
