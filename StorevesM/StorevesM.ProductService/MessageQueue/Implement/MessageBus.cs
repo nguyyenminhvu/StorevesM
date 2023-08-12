@@ -1,8 +1,6 @@
-﻿using Newtonsoft.Json;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.Message;
-using System.Text;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
@@ -35,6 +33,14 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             }
         }
 
+        //Config exchange, queue, routing key
+        private void ConfigurationBroker(MessageRaw raw)
+        {
+            _channel.ExchangeDeclare(raw.ExchangeName, ExchangeType.Direct);
+            _channel.QueueDeclare(raw.QueueName, false, false, false, null);
+            _channel.QueueBind(raw.QueueName, raw.ExchangeName, raw.RoutingKey, null);
+        }
+
         // Send message
         public void PublicMessage(MessageRaw raw)
         {
@@ -42,6 +48,7 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             {
                 if (_connection.IsOpen)
                 {
+                    ConfigurationBroker(raw);
                     var body = System.Text.Encoding.UTF8.GetBytes(raw.Message);
                     _channel.BasicPublish(raw.ExchangeName, raw.RoutingKey, null!, body);
                     Disposed();
