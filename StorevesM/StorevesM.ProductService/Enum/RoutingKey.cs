@@ -2,13 +2,21 @@
 {
     public static class RoutingKey
     {
-        public const string CategoryRouting = "category-routing";
-        public const string ProductRouting = "product-routing";
-        public const string CustomerRouting = "customer-routing";
+        public const string GetCategoryRequest = "get-category-id-request";
+        public const string GetCategoryResponse = "get-category-id-response";
+        public const string GetCategories = "get-categories";
     }
-    public enum Exchange
+
+    public static class Exchange
     {
-        CategoryExchangeDirect,
-        ProductExchangeDirect
+        public const string GetCategoryDirect = "GetCategoryDirect";
+        public const string GetCategoriesDirect = "GetCategoriesDirect";
+    }
+
+    public static class Queue
+    {
+        public const string GetCategoryRequestQueue = "GetCategoryRequestQueue";
+        public const string GetCategoryResponseQueue = "GetCategoryResponseQueue";
+        public const string GetCategoriesQueue = "GetCategoriesQueue";
     }
 }
