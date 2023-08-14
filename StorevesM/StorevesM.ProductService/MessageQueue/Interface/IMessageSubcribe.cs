@@ -4,6 +4,6 @@ namespace StorevesM.ProductService.MessageQueue.Interface
 {
     public interface IMessageSubcribe
     {
-        Task<string> SubcribeMessageBroker(MessageChanel messageChanel, CancellationToken stoppingToken);
+        Task<string> SubcribeGetCategory(CancellationToken stoppingToken=default);
     }
 }

@@ -10,5 +10,6 @@ namespace StorevesM.ProductService.Service
         Task<ProductViewModel> CreateProduct(ProductCreateModel productCreate);
         Task<ProductViewModel> UpdateProduct(ProductUpdateModel productUpdate, int id);
         Task<bool> RemoveProduct(int id);
+        Task<bool> SendMessageDemo();
     }
 }

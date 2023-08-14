@@ -2,10 +2,12 @@
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StorevesM.ProductService.Enum;
+using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.Model.Message;
 using System.Text;
 using System.Threading.Channels;
 
-namespace StorevesM.ProductService.Model.Message
+namespace StorevesM.ProductService.MessageQueue.Implement
 {
     public class MessageSupport : IMessageSupport
     {
@@ -37,7 +39,7 @@ namespace StorevesM.ProductService.Model.Message
 
         private void InitialBroker(MessageRaw raw)
         {
-            _channel.ExchangeDeclare(raw.ExchangeName, ExchangeType.Direct, false, false, null!);
+            _channel.ExchangeDeclare(raw.ExchangeName, ExchangeType.Direct);
             _channel.QueueDeclare(raw.QueueName, false, false, false, null!);
             _channel.QueueBind(raw.QueueName, raw.ExchangeName, raw.RoutingKey, null!);
         }
@@ -45,20 +47,18 @@ namespace StorevesM.ProductService.Model.Message
         private void SendRequest(MessageRaw raw)
         {
             InitialBroker(raw);
-            var body = System.Text.Encoding.UTF8.GetBytes(raw.Message);
+            var body = Encoding.UTF8.GetBytes(raw.Message);
             _channel.BasicPublish(raw.ExchangeName, raw.RoutingKey, null!, body);
         }
-        private void StartProcessingAsync(CancellationToken stoppingToken)
-        {
-            stoppingToken.ThrowIfCancellationRequested();
-        }
-        public Task<bool> CheckCategoryExist(MessageRaw raw)
+
+        public async Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
         {
             try
             {
-                CancellationToken stoppingToken = new CancellationToken();
                 SendRequest(raw);
-                StartProcessingAsync(stoppingToken)
+
+                cancellation.ThrowIfCancellationRequested();
+
                 var tcs = new TaskCompletionSource<bool>();
                 raw.QueueName = Queue.GetCategoryResponseQueue;
                 raw.RoutingKey = RoutingKey.GetCategoryResponse;
@@ -70,13 +70,40 @@ namespace StorevesM.ProductService.Model.Message
                     var response = Encoding.UTF8.GetString(ea.Body.ToArray());
                     tcs.SetResult(response == "true");
                 };
+
                 _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
-                return tcs.Task;
+
+                // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
+                // tcs.Task waiting response
+                // Task.Delay mean cancn
+                var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(3), cancellation));
+
+                // waitResult = tcs.Task when tcs.Task complete(responsed)
+                if (waitResult == tcs.Task)
+                {
+                    Disposed();
+                    return tcs.Task.Result;
+                }
+                else
+                {
+                    Disposed();
+                    Console.WriteLine("Timeout occurred while waiting for response.");
+                    return false;
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
-                return Task.FromResult(false);
+                return false;
+            }
+        }
+
+        private void Disposed()
+        {
+            if (_connection.IsOpen)
+            {
+                _channel.Close();
+                _connection.Close();
             }
         }
     }

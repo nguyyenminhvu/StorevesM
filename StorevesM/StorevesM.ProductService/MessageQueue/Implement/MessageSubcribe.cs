@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.Message;
 
@@ -32,6 +33,8 @@ namespace StorevesM.ProductService.MessageQueue.Implement
         {
             stoppingToken.ThrowIfCancellationRequested();
             InititalBus(messageChanel);
+
+            var consumer = new EventingBasicConsumer(_channel);
         }
 
     }

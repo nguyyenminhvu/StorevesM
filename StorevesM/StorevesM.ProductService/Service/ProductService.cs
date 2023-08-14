@@ -1,22 +1,27 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using StorevesM.ProductService.Entity;
+using StorevesM.ProductService.Enum;
+using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.Model.Message;
 using StorevesM.ProductService.Model.Request;
 using StorevesM.ProductService.Model.View;
 using StorevesM.ProductService.Repository;
-using System.Linq;
 
 namespace StorevesM.ProductService.Service
 {
     public class ProductService : IProductService
     {
+        private readonly IMessageSupport _messageSupport;
         private readonly ProductDbContext _context;
         private readonly IMapper _mapper;
         private readonly IRepository<Product> _productRepository;
 
-        public ProductService(ProductDbContext productDb, IMapper mapper)
+        public ProductService(ProductDbContext productDb, IMapper mapper, IMessageSupport messageSupport)
         {
+            _messageSupport = messageSupport;
             _context = productDb;
             _mapper = mapper;
             _productRepository = new Repository<Product>(_context);
@@ -24,6 +29,11 @@ namespace StorevesM.ProductService.Service
 
         public async Task<ProductViewModel> CreateProduct(ProductCreateModel productCreate)
         {
+            var categoryCheck = await _messageSupport.CheckCategoryExist(new MessageRaw { QueueName = Queue.GetCategoryRequestQueue, ExchangeName = Exchange.GetCategoryDirect, RoutingKey = RoutingKey.GetCategoryRequest, Message = JsonConvert.SerializeObject(productCreate.CategoryId) });
+            if (!categoryCheck)
+            {
+                return null!;
+            }
             Product product = new Product();
             product.Name = productCreate.Name;
             product.Describe = productCreate.Describe;
@@ -80,6 +90,25 @@ namespace StorevesM.ProductService.Service
             product.IsActive = false;
             await _productRepository.SaveChangeAsync();
             return true;
+        }
+
+        public async Task<bool> SendMessageDemo()
+        {
+            try
+            {
+                MessageRaw messageRaw = new MessageRaw();
+                messageRaw.Message = "anh iue";
+                messageRaw.QueueName = "DemoSend";
+                messageRaw.ExchangeName = "ExDemoSend";
+                messageRaw.RoutingKey = "send-demo";
+                await _messageSupport.CheckCategoryExist(messageRaw);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error at SendMessageDemo: " + ex.Message);
+                return false;
+            }
         }
 
         public async Task<ProductViewModel> UpdateProduct(ProductUpdateModel productUpdate, int id)
