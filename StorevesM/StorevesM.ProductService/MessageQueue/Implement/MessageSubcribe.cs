@@ -29,13 +29,13 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             _channel.ExchangeDeclare(messageChanel.ExchangeName, ExchangeType.Direct);
             _channel.QueueBind(messageChanel.QueueName, messageChanel.ExchangeName, messageChanel.RoutingKey);
         }
-        public Task<string> SubcribeMessageBroker(MessageChanel messageChanel, CancellationToken stoppingToken)
-        {
-            stoppingToken.ThrowIfCancellationRequested();
-            InititalBus(messageChanel);
+        //public Task<string> SubcribeMessageBroker(MessageChanel messageChanel, CancellationToken stoppingToken)
+        //{
+        //    stoppingToken.ThrowIfCancellationRequested();
+        //    InititalBus(messageChanel);
 
-            var consumer = new EventingBasicConsumer(_channel);
-        }
+        //    var consumer = new EventingBasicConsumer(_channel);
+        //}
 
     }
 }
