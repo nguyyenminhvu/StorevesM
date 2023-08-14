@@ -1,4 +1,5 @@
 ﻿using Azure;
+using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StorevesM.ProductService.Enum;
@@ -47,7 +48,8 @@ namespace StorevesM.ProductService.MessageQueue.Implement
         private void SendRequest(MessageRaw raw)
         {
             InitialBroker(raw);
-            var body = Encoding.UTF8.GetBytes(raw.Message);
+            var rawSerial = JsonConvert.SerializeObject(raw);
+            var body = Encoding.UTF8.GetBytes(rawSerial);
             _channel.BasicPublish(raw.ExchangeName, raw.RoutingKey, null!, body);
         }
 
@@ -62,13 +64,14 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 var tcs = new TaskCompletionSource<bool>();
                 raw.QueueName = Queue.GetCategoryResponseQueue;
                 raw.RoutingKey = RoutingKey.GetCategoryResponse;
+                raw.ExchangeName = Exchange.GetCategoryDirect;
                 InitialBroker(raw);
-
                 var consumer = new EventingBasicConsumer(_channel);
+                bool demo = false;
                 consumer.Received += (sender, ea) =>
                 {
-                    var response = Encoding.UTF8.GetString(ea.Body.ToArray());
-                    tcs.SetResult(response == "true");
+                    var response = Encoding.UTF8.GetString(ea.Body.ToArray()); demo = response == "true" ? true : false;
+                    //  tcs.SetResult(response == "true");
                 };
 
                 _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
@@ -76,20 +79,20 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
                 // tcs.Task waiting response
                 // Task.Delay mean cancn
-                var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(3), cancellation));
+                //  var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
 
                 // waitResult = tcs.Task when tcs.Task complete(responsed)
-                if (waitResult == tcs.Task)
-                {
-                    Disposed();
-                    return tcs.Task.Result;
-                }
-                else
-                {
-                    Disposed();
-                    Console.WriteLine("Timeout occurred while waiting for response.");
-                    return false;
-                }
+                //if (waitResult == tcs.Task)
+                //{
+                Disposed();
+                return demo;
+                //}
+                //else
+                //{
+                //    Disposed();
+                //    Console.WriteLine("Timeout occurred while waiting for response.");
+                //    return false;
+                //}
             }
             catch (Exception ex)
             {

@@ -12,12 +12,13 @@ namespace StorevesM.ProductService.MessageQueue.Implement
     {
         private IConnection _connection;
         private IModel _channel;
-        private readonly ICategoryService _categoryService;
+        private ICategoryService _categoryService;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
 
-        public MessageSupport(IConfiguration configuration, ICategoryService categoryService)
+        public MessageSupport(IConfiguration configuration, IServiceScopeFactory serviceScope)
         {
-            _categoryService = categoryService;
+            _scopeFactory = serviceScope;
             _configuration = configuration;
             InitialBus();
         }
@@ -47,6 +48,7 @@ namespace StorevesM.ProductService.MessageQueue.Implement
 
         private void SendRequest(MessageRaw raw)
         {
+            InitialBus();
             InitialBroker(raw);
             var body = Encoding.UTF8.GetBytes(raw.Message);
             _channel.BasicPublish(raw.ExchangeName, raw.RoutingKey, null!, body);
@@ -110,19 +112,22 @@ namespace StorevesM.ProductService.MessageQueue.Implement
 
         public async Task ResponseCheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
         {
-            try
+            using (var _scope = _scopeFactory.CreateScope())
             {
-                raw.Message = (await _categoryService.GetCategory(Convert.ToInt32(raw.Message))) != null ? "true" : "false";
-                raw.RoutingKey = RoutingKey.GetCategoryResponse;
-                raw.QueueName = Queue.GetCategoryResponseQueue;
-                raw.ExchangeName = Exchange.GetCategoryDirect;
-                InitialBroker(raw);
-                SendRequest(raw);
-                Disposed();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
+                try
+                {
+                    _categoryService = _scope.ServiceProvider.GetRequiredService<ICategoryService>();
+                    raw.Message = (await _categoryService.GetCategory(Convert.ToInt32(raw.Message))) != null ? "true" : "false";
+                    raw.RoutingKey = RoutingKey.GetCategoryResponse;
+                    raw.QueueName = Queue.GetCategoryResponseQueue;
+                    raw.ExchangeName = Exchange.GetCategoryDirect;
+                    SendRequest(raw);
+                    Disposed();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
+                }
             }
         }
     }

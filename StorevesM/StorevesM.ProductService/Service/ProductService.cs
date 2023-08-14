@@ -40,6 +40,7 @@ namespace StorevesM.ProductService.Service
             product.Price = productCreate.Price;
             product.Quantity = productCreate.Quantity;
             product.CategoryId = productCreate.CategoryId;
+            product.IsActive = true;
             await _productRepository.AddAsync(product);
             await _productRepository.SaveChangeAsync();
             return await GetProduct(product.Id);
