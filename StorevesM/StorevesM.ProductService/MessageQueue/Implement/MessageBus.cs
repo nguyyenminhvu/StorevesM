@@ -63,11 +63,8 @@ namespace StorevesM.ProductService.MessageQueue.Implement
 
         private void Disposed()
         {
-            if (_connection.IsOpen)
-            {
-                _channel.Close();
-                _connection.Close();
-            }
+            _channel?.Dispose();
+            _connection?.Dispose();
         }
     }
 }

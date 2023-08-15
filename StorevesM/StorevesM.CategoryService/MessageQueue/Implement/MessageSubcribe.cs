@@ -4,10 +4,11 @@ using StorevesM.CategoryService.Enum;
 using StorevesM.CategoryService.MessageQueue.Interface;
 using StorevesM.CategoryService.Model.Message;
 using StorevesM.ProductService.MessageQueue.Interface;
+using System.Threading.Channels;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
-    public class MessageSubcribe : BackgroundService, IMessageSubcribe
+    public class MessageSubcribe : BackgroundService, IMessageSubcribe, IDisposable
     {
         private readonly IMessageFactory _messageFactory;
         private readonly IConfiguration _configuration;
@@ -34,18 +35,10 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             _channel.QueueBind(messageChanel.QueueName, messageChanel.ExchangeName, messageChanel.RoutingKey);
         }
 
-        public void SubcribeGetCategory(CancellationToken stoppingToken = default)
-        {
-
-        }
-
         private void Disposed()
         {
-            if (_connection.IsOpen)
-            {
-                _channel.Close();
-                _connection.Close();
-            }
+            _channel?.Dispose();
+            _connection?.Dispose();
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -61,8 +54,8 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 await _messageFactory.ProcessMessage(body);
             };
             var consumerTag = _channel.BasicConsume(queue: _messageChanel.QueueName, autoAck: true, consumer: _consumer);
-            //_channel.BasicCancel(consumerTag);
-            //Disposed();
+            // _channel.BasicCancel(consumerTag);
+            // Disposed();
             return Task.CompletedTask;
         }
     }

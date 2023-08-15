@@ -10,7 +10,7 @@ using System.Threading.Channels;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
-    public class MessageSupport : IMessageSupport
+    public class MessageSupport : IMessageSupport,IDisposable
     {
         private IConnection _connection;
         private IModel _channel;
@@ -71,7 +71,7 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 consumer.Received += (sender, ea) =>
                 {
                     var response = Encoding.UTF8.GetString(ea.Body.ToArray()); demo = response == "true" ? true : false;
-                    //  tcs.SetResult(response == "true");
+                    tcs.SetResult(response == "true");
                 };
 
                 _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
@@ -79,20 +79,18 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
                 // tcs.Task waiting response
                 // Task.Delay mean cancn
-                //  var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
+                var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
 
                 // waitResult = tcs.Task when tcs.Task complete(responsed)
-                //if (waitResult == tcs.Task)
-                //{
-                Disposed();
-                return demo;
-                //}
-                //else
-                //{
-                //    Disposed();
-                //    Console.WriteLine("Timeout occurred while waiting for response.");
-                //    return false;
-                //}
+                if (waitResult == tcs.Task)
+                {
+                    return demo;
+                }
+                else
+                {
+                    Console.WriteLine("Timeout occurred while waiting for response.");
+                    return false;
+                }
             }
             catch (Exception ex)
             {
@@ -101,13 +99,10 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             }
         }
 
-        private void Disposed()
+        public void Dispose()
         {
-            if (_connection.IsOpen)
-            {
-                _channel.Close();
-                _connection.Close();
-            }
+            _channel?.Dispose();
+            _connection?.Dispose();
         }
     }
 }
