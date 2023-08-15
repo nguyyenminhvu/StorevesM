@@ -1,6 +1,8 @@
 namespace: storeves-pj
 SA_PASSWORD: Cat3gory!
 SA_PASSWORD: Produc1!
+SA_PASSWORD: Car1Serv!ce
+SA_PASSWORD: OrderServ!ce
 kubectl get secret -n storeves-pj
 kubectl get pod -n storeves-pj
 kubectl get deployment -n storeves-pj

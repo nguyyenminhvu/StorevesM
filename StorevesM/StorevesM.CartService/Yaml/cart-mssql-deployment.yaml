@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-mssql-deployment
+  namespace: storeves-pj
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cart-mssql
+  template:
+    metadata:
+      labels:
+        app: cart-mssql
+    spec:
+      containers:
+        - name: cart-mssql
+          image: mcr.microsoft.com/mssql/server:2019-latest
+          ports:
+            - containerPort: 1433
+          env:
+            - name: MSSQL_PID
+              value: "Express"
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cart-mssql-secret
+                  key: SA_PASSWORD
+          volumeMounts:
+            - mountPath: /var/opt/mssql/data
+              name: cart-volume-mssql
+      volumes:
+        - name: cart-volume-mssql
+          persistentVolumeClaim:
+            claimName: cart-volume-mssql-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-mssql-clusterip-service
+  namespace: storeves-pj
+spec:
+  type: ClusterIP
+  selector:
+    app: cart-mssql
+  ports:
+    - name: cart-mssql
+      protocol: TCP
+      port: 1002
+      targetPort: 1433
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-mssql-loadbalancer
+  namespace: storeves-pj
+spec:
+  type: LoadBalancer
+  selector:
+    app: cart-mssql
+  ports:
+    - name: cart-mssql
+      protocol: TCP
+      port: 1002
+      targetPort: 1433

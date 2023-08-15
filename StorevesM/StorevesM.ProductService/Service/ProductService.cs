@@ -29,11 +29,12 @@ namespace StorevesM.ProductService.Service
 
         public async Task<ProductViewModel> CreateProduct(ProductCreateModel productCreate)
         {
-            var categoryCheck = await _messageSupport.CheckCategoryExist(new MessageRaw { QueueName = Queue.GetCategoryRequestQueue, ExchangeName = Exchange.GetCategoryDirect, RoutingKey = RoutingKey.GetCategoryRequest, Message = JsonConvert.SerializeObject(productCreate.CategoryId) });
-            if (!categoryCheck)
+            var categoryCheck = await _messageSupport.GetCategory(new MessageRaw { QueueName = Queue.GetCategoryRequestQueue, ExchangeName = Exchange.GetCategoryDirect, RoutingKey = RoutingKey.GetCategoryRequest, Message = JsonConvert.SerializeObject(productCreate.CategoryId) });
+            if (categoryCheck == null!)
             {
                 return null!;
             }
+
             Product product = new Product();
             product.Name = productCreate.Name;
             product.Describe = productCreate.Describe;
@@ -49,12 +50,30 @@ namespace StorevesM.ProductService.Service
         public async Task<ProductViewModel> GetProduct(int id)
         {
             var product = await _productRepository.FirstOrDefaultAsync(x => x.Id == id && x.IsActive);
-            return product != null ? _mapper.Map<ProductViewModel>(product) : null!;
+            if (product != null)
+            {
+                var category = await _messageSupport.GetCategory(new MessageRaw { QueueName = Queue.GetCategoryRequestQueue, ExchangeName = Exchange.GetCategoryDirect, RoutingKey = RoutingKey.GetCategoryRequest, Message = JsonConvert.SerializeObject(product.CategoryId) });
+
+                var productVm = _mapper.Map<ProductViewModel>(product);
+                productVm.Category = category;
+                return productVm;
+            }
+            return null!;
         }
 
         public async Task<List<ProductViewModel>> GetProducts(ProductFilterModel productFilter)
         {
             var queryable = _productRepository.GetAll().Where(x => x.IsActive);
+
+            if (productFilter.CategoryId != null!)
+            {
+                var categoryCheck = await _messageSupport.GetCategory(new MessageRaw { QueueName = Queue.GetCategoryRequestQueue, ExchangeName = Exchange.GetCategoryDirect, RoutingKey = RoutingKey.GetCategoryRequest, Message = JsonConvert.SerializeObject(productFilter.CategoryId) });
+                if (categoryCheck == null!)
+                {
+                    return null!;
+                }
+                queryable = queryable.Where(x => x.CategoryId == productFilter.CategoryId);
+            }
             if (queryable.Count() <= 0)
             {
                 return null!;
@@ -72,7 +91,6 @@ namespace StorevesM.ProductService.Service
                 queryable = queryable.Where(x => x.Price <= productFilter.PriceTo);
             }
 
-            // Missed filter by categoryId
 
             if (queryable.Count() <= 0)
             {
@@ -102,7 +120,7 @@ namespace StorevesM.ProductService.Service
                 messageRaw.QueueName = "DemoSend";
                 messageRaw.ExchangeName = "ExDemoSend";
                 messageRaw.RoutingKey = "send-demo";
-                await _messageSupport.CheckCategoryExist(messageRaw);
+                await _messageSupport.GetCategory(messageRaw);
                 return true;
             }
             catch (Exception ex)
