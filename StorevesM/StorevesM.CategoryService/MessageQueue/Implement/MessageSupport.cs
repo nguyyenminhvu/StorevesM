@@ -4,6 +4,7 @@ using StorevesM.CategoryService.Enum;
 using StorevesM.CategoryService.Model.Message;
 using StorevesM.CategoryService.Service;
 using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.ProductExtension;
 using System.Text;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
@@ -60,7 +61,8 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 try
                 {
                     _categoryService = _scope.ServiceProvider.GetRequiredService<ICategoryService>();
-                    raw.Message = (await _categoryService.GetCategory(Convert.ToInt32(raw.Message))) != null ? "true" : "false";
+                    var category = await _categoryService.GetCategory(Convert.ToInt32(raw.Message));
+                    raw.Message = category != null ? category.SerializeCategoryDtoToString() : null!;
                     raw.RoutingKey = RoutingKey.GetCategoryResponse;
                     raw.QueueName = Queue.GetCategoryResponseQueue;
                     raw.ExchangeName = Exchange.GetCategoryDirect;

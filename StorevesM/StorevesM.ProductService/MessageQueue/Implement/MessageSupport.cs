@@ -1,16 +1,19 @@
 ﻿using Azure;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StorevesM.ProductService.Enum;
 using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.Model.DTOMessage;
 using StorevesM.ProductService.Model.Message;
+using StorevesM.ProductService.ProductExtension;
 using System.Text;
 using System.Threading.Channels;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
-    public class MessageSupport : IMessageSupport,IDisposable
+    public class MessageSupport : IMessageSupport, IDisposable
     {
         private IConnection _connection;
         private IModel _channel;
@@ -21,7 +24,11 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             _configuration = configuration;
             InitialBus();
         }
-
+        public void Dispose()
+        {
+            _channel?.Dispose();
+            _connection?.Dispose();
+        }
         private void InitialBus()
         {
             try
@@ -40,6 +47,10 @@ namespace StorevesM.ProductService.MessageQueue.Implement
 
         private void InitialBroker(MessageRaw raw)
         {
+            if (!_connection.IsOpen)
+            {
+                InitialBus();
+            }
             _channel.ExchangeDeclare(raw.ExchangeName, ExchangeType.Direct);
             _channel.QueueDeclare(raw.QueueName, false, false, false, null!);
             _channel.QueueBind(raw.QueueName, raw.ExchangeName, raw.RoutingKey, null!);
@@ -53,56 +64,98 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             _channel.BasicPublish(raw.ExchangeName, raw.RoutingKey, null!, body);
         }
 
-        public async Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
+        private void ChangeExchangeListen(MessageRaw raw)
+        {
+            raw.QueueName = Queue.GetCategoryResponseQueue;
+            raw.RoutingKey = RoutingKey.GetCategoryResponse;
+            raw.ExchangeName = Exchange.GetCategoryDirect;
+            InitialBroker(raw);
+        }
+
+        //public async Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
+        //{
+        //    try
+        //    {
+        //        cancellation.ThrowIfCancellationRequested();
+
+        //        SendRequest(raw);
+        //        ChangeExchangeListen(raw);
+
+        //        var tcs = new TaskCompletionSource<bool>();
+
+        //        var consumer = new EventingBasicConsumer(_channel);
+        //        consumer.Received += (sender, ea) =>
+        //        {
+        //            var response = Encoding.UTF8.GetString(ea.Body.ToArray());
+        //            var category = response.DeserializeToCategoryDTO();
+        //            tcs.SetResult(category != null!);
+        //        };
+
+        //        _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
+
+        //        // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
+        //        // tcs.Task waiting response
+        //        // Task.Delay mean cancn
+        //        var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
+
+        //        // waitResult = tcs.Task when tcs.Task complete(responsed)
+        //        if (waitResult == tcs.Task)
+        //        {
+        //            return tcs.Task.Result;
+        //        }
+        //        else
+        //        {
+        //            Console.WriteLine("Timeout occurred while waiting for response.");
+        //            return false;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
+        //        return false;
+        //    }
+        //}
+
+        public async Task<CategoryDTO> GetCategory(MessageRaw raw, CancellationToken cancellation = default)
         {
             try
             {
-                SendRequest(raw);
-
                 cancellation.ThrowIfCancellationRequested();
 
-                var tcs = new TaskCompletionSource<bool>();
-                raw.QueueName = Queue.GetCategoryResponseQueue;
-                raw.RoutingKey = RoutingKey.GetCategoryResponse;
-                raw.ExchangeName = Exchange.GetCategoryDirect;
-                InitialBroker(raw);
+                SendRequest(raw);
+                ChangeExchangeListen(raw);
+
+                var taskcs = new TaskCompletionSource<CategoryDTO>();
                 var consumer = new EventingBasicConsumer(_channel);
-                bool demo = false;
-                consumer.Received += (sender, ea) =>
+
+                consumer.Received += (sender, e) =>
                 {
-                    var response = Encoding.UTF8.GetString(ea.Body.ToArray()); demo = response == "true" ? true : false;
-                    tcs.SetResult(response == "true");
+                    var body = System.Text.Encoding.UTF8.GetString(e.Body.ToArray());
+                    taskcs.SetResult(body.DeserializeToCategoryDTO());
                 };
 
                 _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
 
-                // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
+                // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> newTask is new Task complete from 2 Task inside WhenAny
                 // tcs.Task waiting response
                 // Task.Delay mean cancn
-                var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
+                var newTask = await Task.WhenAny(taskcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
 
-                // waitResult = tcs.Task when tcs.Task complete(responsed)
-                if (waitResult == tcs.Task)
+                // newTask = tcs.Task when tcs.Task complete(responsed)
+                if (newTask == taskcs.Task)
                 {
-                    return demo;
+                    return taskcs.Task.Result;
                 }
                 else
                 {
-                    Console.WriteLine("Timeout occurred while waiting for response.");
-                    return false;
+                    return null!;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
-                return false;
+                Console.WriteLine("Error in MessageSupport at GetCategory: " + ex.Message);
+                return null!;
             }
-        }
-
-        public void Dispose()
-        {
-            _channel?.Dispose();
-            _connection?.Dispose();
         }
     }
 }

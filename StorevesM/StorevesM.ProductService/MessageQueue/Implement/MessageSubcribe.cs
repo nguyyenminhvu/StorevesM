@@ -1,17 +1,16 @@
 ﻿using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.Message;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
-    public class MessageSubcribe : IMessageSubcribe
+    public class GetProductsSubcribe : BackgroundService, IMessageSubcribe, IDisposable
     {
         private readonly IConfiguration _configuration;
         private IConnection _connection;
         private IModel _channel;
 
-        public MessageSubcribe(IConfiguration configuration)
+        public GetProductsSubcribe(IConfiguration configuration)
         {
             _configuration = configuration;
         }
@@ -29,13 +28,15 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             _channel.ExchangeDeclare(messageChanel.ExchangeName, ExchangeType.Direct);
             _channel.QueueBind(messageChanel.QueueName, messageChanel.ExchangeName, messageChanel.RoutingKey);
         }
-        //public Task<string> SubcribeMessageBroker(MessageChanel messageChanel, CancellationToken stoppingToken)
-        //{
-        //    stoppingToken.ThrowIfCancellationRequested();
-        //    InititalBus(messageChanel);
+        private void Disposed()
+        {
+            _channel?.Dispose();
+            _connection?.Dispose();
+        }
 
-        //    var consumer = new EventingBasicConsumer(_channel);
-        //}
-
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

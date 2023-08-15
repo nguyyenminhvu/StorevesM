@@ -1,4 +1,6 @@
-﻿namespace StorevesM.ProductService.Model.View
+﻿using StorevesM.ProductService.Model.DTOMessage;
+
+namespace StorevesM.ProductService.Model.View
 {
     public class ProductViewModel
     {
@@ -11,5 +13,7 @@
         public double Price { get; set; }
 
         public string Describe { get; set; }
+
+        public CategoryDTO Category { get; set; }
     }
 }
