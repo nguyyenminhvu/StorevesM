@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using StorevesM.CartService.Entity;
 using StorevesM.CartService.Model.Request;
 using StorevesM.CartService.Model.View;
@@ -21,6 +22,20 @@ namespace StorevesM.CartService.Service.Implement
             _cartRepository = new Repository.Implement.Repository<Cart>(_context);
             _cartItemRepository = new Repository.Implement.Repository<CartItem>(_context);
         }
+
+        public async Task<bool> ClearCartItem(int cartId)
+        {
+            var cart = await _cartRepository.GetMany(x => x.Id == cartId).Include(x => x.CartItems).FirstOrDefaultAsync();
+            if (cart != null)
+            {
+                var cartItem = cart.CartItems;
+                _cartItemRepository.RemoveRangeAsync(cartItem);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+
         public async Task<CartViewModel> GetCart(int customerId)
         {
             var cart = await _cartRepository.FirstOrDefaultAsync(x => x.CustomerId == customerId, x => x.CartItems);

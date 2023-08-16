@@ -1,4 +1,5 @@
-﻿using StorevesM.OrderService.MessageQueue.Interface;
+﻿using StorevesM.OrderService.MessageQueue.Implement;
+using StorevesM.OrderService.MessageQueue.Interface;
 
 namespace StorevesM.OrderService.ApplicationConfig
 {
@@ -6,7 +7,7 @@ namespace StorevesM.OrderService.ApplicationConfig
     {
         public static void SubcribeMessageQueue(this IServiceCollection services, IConfiguration configuration, IMessageFactory messageFactory)
         {
-            services.AddSingleton<IMessageSupport>();
+
         }
     }
 }

@@ -1,5 +1,4 @@
 using StorevesM.CategoryService.MessageQueue.Interface;
-using StorevesM.OrderService.ApplicationConfig;
 using StorevesM.ProductService.ApplicationConfig;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -3,12 +3,10 @@ using RabbitMQ.Client.Events;
 using StorevesM.CategoryService.Enum;
 using StorevesM.CategoryService.MessageQueue.Interface;
 using StorevesM.CategoryService.Model.Message;
-using StorevesM.ProductService.MessageQueue.Interface;
-using System.Threading.Channels;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
-    public class MessageSubcribe : BackgroundService, IMessageSubcribe, IDisposable
+    public class MessageSubcribe : BackgroundService, IDisposable
     {
         private readonly IMessageFactory _messageFactory;
         private readonly IConfiguration _configuration;
@@ -33,12 +31,6 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             _channel.QueueDeclare(messageChanel.QueueName, false, false, false, null!);
             _channel.ExchangeDeclare(messageChanel.ExchangeName, ExchangeType.Direct);
             _channel.QueueBind(messageChanel.QueueName, messageChanel.ExchangeName, messageChanel.RoutingKey);
-        }
-
-        private void Disposed()
-        {
-            _channel?.Dispose();
-            _connection?.Dispose();
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)

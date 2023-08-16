@@ -1,11 +1,9 @@
 ﻿using Newtonsoft.Json;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 using StorevesM.CartService.Enum;
-using StorevesM.CartService.Model.DTOMessage;
 using StorevesM.CartService.Model.Message;
+using StorevesM.CartService.Service.Interface;
 using StorevesM.ProductService.MessageQueue.Interface;
-using StorevesM.ProductService.ProductExtension;
 using System.Text;
 
 namespace StorevesM.CartService.MessageQueue.Implement
@@ -14,10 +12,12 @@ namespace StorevesM.CartService.MessageQueue.Implement
     {
         private IConnection _connection;
         private IModel _channel;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
 
-        public MessageSupport(IConfiguration configuration)
+        public MessageSupport(IConfiguration configuration, IServiceScopeFactory serviceScopeFactory)
         {
+            _scopeFactory = serviceScopeFactory;
             _configuration = configuration;
             InitialBus();
         }
@@ -61,97 +61,31 @@ namespace StorevesM.CartService.MessageQueue.Implement
             _channel.BasicPublish(raw.ExchangeName, raw.RoutingKey, null!, body);
         }
 
-        private void ChangeExchangeListen(MessageRaw raw)
-        {
-            raw.QueueName = Queue.GetCategoryResponseQueue;
-            raw.RoutingKey = RoutingKey.GetCategoryResponse;
-            raw.ExchangeName = Exchange.GetCategoryDirect;
-            InitialBroker(raw);
-        }
-
-        //public async Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
-        //{
-        //    try
-        //    {
-        //        cancellation.ThrowIfCancellationRequested();
-
-        //        SendRequest(raw);
-        //        ChangeExchangeListen(raw);
-
-        //        var tcs = new TaskCompletionSource<bool>();
-
-        //        var consumer = new EventingBasicConsumer(_channel);
-        //        consumer.Received += (sender, ea) =>
-        //        {
-        //            var response = Encoding.UTF8.GetString(ea.Body.ToArray());
-        //            var category = response.DeserializeToCategoryDTO();
-        //            tcs.SetResult(category != null!);
-        //        };
-
-        //        _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
-
-        //        // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
-        //        // tcs.Task waiting response
-        //        // Task.Delay mean cancn
-        //        var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
-
-        //        // waitResult = tcs.Task when tcs.Task complete(responsed)
-        //        if (waitResult == tcs.Task)
-        //        {
-        //            return tcs.Task.Result;
-        //        }
-        //        else
-        //        {
-        //            Console.WriteLine("Timeout occurred while waiting for response.");
-        //            return false;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
-        //        return false;
-        //    }
-        //}
-
-        public async Task<CategoryDTO> GetCategory(MessageRaw raw, CancellationToken cancellation = default)
+        public async Task ClearCartItem(MessageRaw raw, CancellationToken cancellation = default)
         {
             try
             {
                 cancellation.ThrowIfCancellationRequested();
-
-                SendRequest(raw);
-                ChangeExchangeListen(raw);
-
-                var taskcs = new TaskCompletionSource<CategoryDTO>();
-                var consumer = new EventingBasicConsumer(_channel);
-
-                consumer.Received += (sender, e) =>
+                using (var _scope = _scopeFactory.CreateScope())
                 {
-                    var body = System.Text.Encoding.UTF8.GetString(e.Body.ToArray());
-                    taskcs.SetResult(body.DeserializeToCategoryDTO());
-                };
+                    var cartService = _scope.ServiceProvider.GetRequiredService<ICartService>();
+                    var clean = await cartService.ClearCartItem(Convert.ToInt32(raw.Message));
 
-                _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
-
-                // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> newTask is new Task complete from 2 Task inside WhenAny
-                // tcs.Task waiting response
-                // Task.Delay mean cancn
-                var newTask = await Task.WhenAny(taskcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
-
-                // newTask = tcs.Task when tcs.Task complete(responsed)
-                if (newTask == taskcs.Task)
-                {
-                    return taskcs.Task.Result;
-                }
-                else
-                {
-                    return null!;
+                    raw.QueueName = Queue.ClearCartItemResQueue;
+                    raw.ExchangeName = Exchange.ClearCartItemDirect;
+                    raw.RoutingKey = RoutingKey.ClearCartItemResponse;
+                    raw.Message = clean ? "true" : "false";
+                    SendRequest(raw);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error in MessageSupport at GetCategory: " + ex.Message);
-                return null!;
+                Console.WriteLine("Error in MessageSupport at ClearCartItem: " + ex.Message);
+
+            }
+            finally
+            {
+                Dispose();
             }
         }
     }

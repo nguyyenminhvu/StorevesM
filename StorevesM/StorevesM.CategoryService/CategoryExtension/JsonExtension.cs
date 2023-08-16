@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using StorevesM.CategoryService.Model.DTOMessage;
+using StorevesM.CategoryService.Model.Message;
 using StorevesM.CategoryService.Model.View;
 
 namespace StorevesM.ProductService.ProductExtension
@@ -32,6 +33,15 @@ namespace StorevesM.ProductService.ProductExtension
         public static string SerializeCategoryDtoToString(this CategoryViewModel categoryDTO)
         {
             return JsonConvert.SerializeObject(categoryDTO);
+        }
+
+        public static MessageRaw DeserializeToMessageRaw(string messageRawJson)
+        {
+            if (messageRawJson != null)
+            {
+                return JsonConvert.DeserializeObject<MessageRaw>(messageRawJson)!;
+            }
+            return null!;
         }
     }
 }

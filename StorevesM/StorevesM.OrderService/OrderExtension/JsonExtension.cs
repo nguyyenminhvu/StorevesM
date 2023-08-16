@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using StorevesM.OrderService.Model.DTOMessage;
+using StorevesM.OrderService.Model.Message;
 
 namespace StorevesM.ProductService.ProductExtension
 {
@@ -27,6 +28,14 @@ namespace StorevesM.ProductService.ProductExtension
             if (cart != null)
             {
                 return JsonConvert.SerializeObject(cart);
+            }
+            return null!;
+        }
+        public static MessageRaw DeserializeToMessageRaw(this string messageRawJson)
+        {
+            if (messageRawJson != null)
+            {
+                return JsonConvert.DeserializeObject<MessageRaw>(messageRawJson)!;
             }
             return null!;
         }

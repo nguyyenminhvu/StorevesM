@@ -1,10 +1,9 @@
 ﻿using RabbitMQ.Client;
-using StorevesM.OrderService.MessageQueue.Interface;
 using StorevesM.OrderService.Model.Message;
 
 namespace StorevesM.OrderService.MessageQueue.Implement
 {
-    public class MessageSubcribe : IMessageSubcribe
+    public class MessageSubcribe :BackgroundService,IDisposable
     {
         private readonly IConfiguration _configuration;
         private IConnection _connection;
@@ -13,6 +12,11 @@ namespace StorevesM.OrderService.MessageQueue.Implement
         public MessageSubcribe(IConfiguration configuration)
         {
             _configuration = configuration;
+        }
+
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            throw new NotImplementedException();
         }
 
         private void InititalBus(MessageChanel messageChanel)

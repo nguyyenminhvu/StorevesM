@@ -11,5 +11,9 @@ namespace StorevesM.OrderService.Service
         Task<List<OrderViewModel>> GetOrders();
         Task<OrderViewModel> CreateOrder(CartDTO cart);
         Task<IActionResult> UpdateOrder(OrderUpdateModel oum);
+
+        Task<List<ProductDTO>> DemoGetProduct();
+        Task<bool> DemoUpdateQuantityProduct();
+        Task<bool> DemoClearCartItem();
     }
 }

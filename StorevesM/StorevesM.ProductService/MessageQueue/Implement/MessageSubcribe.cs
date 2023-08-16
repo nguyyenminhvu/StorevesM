@@ -1,12 +1,11 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StorevesM.CategoryService.MessageQueue.Interface;
-using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.Message;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
-    public class MessageSubcribe : BackgroundService, IMessageSubcribe
+    public class MessageSubcribe : BackgroundService, IDisposable
     {
         private readonly IMessageFactory _messageFactory;
         private readonly MessageGetConnection _getChannel;
