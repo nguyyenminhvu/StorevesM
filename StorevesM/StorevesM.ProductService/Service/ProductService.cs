@@ -165,6 +165,7 @@ namespace StorevesM.ProductService.Service
                         }
                     }
                 }
+                await _context.SaveChangesAsync();
                 return true;
             }
             return false;

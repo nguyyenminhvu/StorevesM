@@ -20,7 +20,7 @@ namespace StorevesM.ProductService.Model.Message
         {
             MessageChanel _mesageChanel = new MessageChanel();
             _mesageChanel.QueueName = Queue.UpdateQuantityProductReqQ;
-            _mesageChanel.ExchangeName = Exchange.UpdateQuantityProduct;
+            _mesageChanel.ExchangeName = Exchange.UpdateQuantityProductDirect;
             _mesageChanel.RoutingKey = ProductService.Enum.RoutingKey.UpdateQuantityReqProduct;
             return _mesageChanel;
         }
@@ -28,8 +28,8 @@ namespace StorevesM.ProductService.Model.Message
         {
             MessageChanel _mesageChanel = new MessageChanel();
             _mesageChanel.QueueName = Queue.ClearCartItemReqQueue;
-            _mesageChanel.ExchangeName = Exchange.ClearCartItem;
-            _mesageChanel.RoutingKey = ProductService.Enum.RoutingKey.ClearCartItem;
+            _mesageChanel.ExchangeName = Exchange.ClearCartItemDirect;
+            _mesageChanel.RoutingKey = ProductService.Enum.RoutingKey.ClearCartItemRequest;
             return _mesageChanel;
         }
     }

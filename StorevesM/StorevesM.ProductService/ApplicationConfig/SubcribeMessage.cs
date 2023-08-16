@@ -2,7 +2,7 @@
 using StorevesM.ProductService.MessageQueue.Implement;
 using StorevesM.ProductService.Model.Message;
 
-namespace StorevesM.OrderService.ApplicationConfig
+namespace StorevesM.ProductService.ApplicationConfig
 {
     public static class SubcribeMessage
     {

@@ -75,53 +75,6 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             InitialBroker(raw);
         }
 
-        #region CheckCategoryExist
-        //public async Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
-        //{
-        //    try
-        //    {
-        //        cancellation.ThrowIfCancellationRequested();
-
-        //        SendRequest(raw);
-        //        ChangeExchangeListen(raw);
-
-        //        var tcs = new TaskCompletionSource<bool>();
-
-        //        var consumer = new EventingBasicConsumer(_channel);
-        //        consumer.Received += (sender, ea) =>
-        //        {
-        //            var response = Encoding.UTF8.GetString(ea.Body.ToArray());
-        //            var category = response.DeserializeToCategoryDTO();
-        //            tcs.SetResult(category != null!);
-        //        };
-
-        //        _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
-
-        //        // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
-        //        // tcs.Task waiting response
-        //        // Task.Delay mean cancn
-        //        var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
-
-        //        // waitResult = tcs.Task when tcs.Task complete(responsed)
-        //        if (waitResult == tcs.Task)
-        //        {
-        //            return tcs.Task.Result;
-        //        }
-        //        else
-        //        {
-        //            Console.WriteLine("Timeout occurred while waiting for response.");
-        //            return false;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
-        //        return false;
-        //    }
-        //}
-        #endregion
-
-        #region SendAndListenResponseGetCategory
         public async Task<CategoryDTO> GetCategory(MessageRaw raw, CancellationToken cancellation = default)
         {
             try
@@ -150,7 +103,9 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 // newTask = tcs.Task when tcs.Task complete(responsed)
                 if (newTask == taskcs.Task)
                 {
-                    return taskcs.Task.Result;
+                    var result = taskcs.Task.Result;
+                    Dispose();
+                    return result;
                 }
                 else
                 {
@@ -163,7 +118,7 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 return null!;
             }
         }
-        #endregion
+
 
         public async Task ResponseGetProducts(MessageRaw raw, CancellationToken cancellation = default)
         {
@@ -177,6 +132,7 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                     raw.QueueName = Queue.GetProductsResponseQueue;
                     raw.ExchangeName = Exchange.GetProductsDirect;
                     raw.RoutingKey = RoutingKey.GetProductsResponse;
+                    raw.Message = products.SerializeProducts();
                     SendRequest(raw);
                 }
             }
@@ -184,7 +140,12 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             {
                 Console.WriteLine("Error in MessageSupport at ResponseGetProducts: " + ex.Message);
             }
+            finally
+            {
+                Dispose();
+            }
         }
+
 
         public async Task ResponseUpdateQuantity(MessageRaw raw, CancellationToken cancellationToken = default)
         {
@@ -197,7 +158,7 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                     var updated = await productService.UpdateQuantityProduct(raw.Message.DeserializeCartDTO());
                     raw.Message = updated == true ? "true" : "false";
                     raw.QueueName = Queue.UpdateQuantityProductResQ;
-                    raw.ExchangeName = Exchange.UpdateQuantityProduct;
+                    raw.ExchangeName = Exchange.UpdateQuantityProductDirect;
                     raw.RoutingKey = RoutingKey.UpdateQuantityResProduct;
                     SendRequest(raw);
                 }
@@ -205,6 +166,10 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             catch (Exception ex)
             {
                 Console.WriteLine("Error in MessageSupport at  ResponseClearCartItem: " + ex.Message);
+            }
+            finally
+            {
+                Dispose();
             }
         }
 

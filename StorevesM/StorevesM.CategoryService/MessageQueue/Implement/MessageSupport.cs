@@ -71,6 +71,10 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 {
                     Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
                 }
+                finally
+                {
+                    Dispose();
+                }
             }
         }
 

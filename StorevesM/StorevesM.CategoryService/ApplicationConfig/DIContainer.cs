@@ -20,7 +20,6 @@ namespace StorevesM.CategoryService.ApplicationConfig
             services.AddScoped<ICategoryService, CategoryService.Service.CategoryService>();
             services.AddSingleton<IMessageFactory, MessageFactory>();
             services.AddSingleton<IMessageSupport, MessageSupport>();
-            services.AddSingleton<IMessageSubcribe, MessageSubcribe>();
             services.AddHostedService<MessageSubcribe>();
 
         }

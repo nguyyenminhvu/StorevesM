@@ -56,12 +56,44 @@ namespace StorevesM.OrderService.Service
             }
 
             // Update quantity product on ProductService (CartDTO)
-            var updated = await _messageSupport.UpdateQuantityProduct(new Model.Message.MessageRaw { Message = cart.SerializeCartDTO(), QueueName = Queue.UpdateQuantityProductReqQ, ExchangeName = Exchange.UpdateQuantityProduct, RoutingKey = RoutingKey.UpdateQuantityReqProduct });
+            var updated = await _messageSupport.UpdateQuantityProduct(new Model.Message.MessageRaw { Message = cart.SerializeCartDTO(), QueueName = Queue.UpdateQuantityProductReqQ, ExchangeName = Exchange.UpdateQuantityProductDirect, RoutingKey = RoutingKey.UpdateQuantityReqProduct });
 
-            // Clear cartItem on CartItem (CartDTO)
-            // *** Not yet ***
+            // Clear cartitem on CartService (cartId)
+            var cleaned = await _messageSupport.ClearCartItem(new Model.Message.MessageRaw { Message = cart.Id.ToString(), QueueName = Queue.ClearCartItemReqQueue, ExchangeName = Exchange.ClearCartItemDirect, RoutingKey = RoutingKey.ClearCartItemRequest });
+
 
             return await GetOrder(order.Id);
+        }
+
+        public async Task<bool> DemoClearCartItem()
+        {
+            var cleaned = await _messageSupport.ClearCartItem(new Model.Message.MessageRaw { Message = 1.ToString(), QueueName = Queue.ClearCartItemReqQueue, ExchangeName = Exchange.ClearCartItemDirect, RoutingKey = RoutingKey.ClearCartItemRequest });
+            return cleaned;
+        }
+
+        public async Task<List<ProductDTO>> DemoGetProduct()
+        {
+            var products = await _messageSupport.GetProducts(new Model.Message.MessageRaw
+            {
+                ExchangeName = Exchange.GetProductsDirect,
+                Message = "get",
+                QueueName =
+              Queue.GetProductsRequestQueue,
+                RoutingKey = RoutingKey.GetProductsRequest
+            });
+            return products;
+        }
+
+        public async Task<bool> DemoUpdateQuantityProduct()
+        {
+            List<CartItemDTO> cartItems = new List<CartItemDTO>();
+            cartItems.Add(new CartItemDTO { ProductId = 1, Quantity = 1 });
+            cartItems.Add(new CartItemDTO { ProductId = 2, Quantity = 1 });
+            CartDTO cartDTO = new();
+            cartDTO.CartItems = cartItems;
+            var updated = await _messageSupport.UpdateQuantityProduct(new Model.Message.MessageRaw { Message = cartDTO.SerializeCartDTO(), QueueName = Queue.UpdateQuantityProductReqQ, ExchangeName = Exchange.UpdateQuantityProductDirect, RoutingKey = RoutingKey.UpdateQuantityReqProduct });
+            return updated;
+
         }
 
         public async Task<OrderViewModel> GetOrder(int orderId)

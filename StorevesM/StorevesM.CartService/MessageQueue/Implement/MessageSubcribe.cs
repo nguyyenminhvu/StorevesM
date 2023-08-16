@@ -1,40 +1,50 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using StorevesM.CartService.MessageQueue.Interface;
 using StorevesM.CartService.Model.Message;
-using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.MessageQueue;
 
 namespace StorevesM.CartService.MessageQueue.Implement
 {
-    public class MessageSubcribe : IMessageSubcribe
+    public class MessageSubcribe : BackgroundService, IDisposable
     {
         private readonly IConfiguration _configuration;
+        private readonly MessageGetConnection _messageGetChannel;
+        private readonly IMessageFactory _messageFactory;
         private IConnection _connection;
         private IModel _channel;
+        private readonly IEnumerable<MessageChanel> _messageChannel;
 
-        public MessageSubcribe(IConfiguration configuration)
+        public MessageSubcribe(IConfiguration configuration, IMessageFactory messageFactory, IEnumerable<MessageChanel> messageChanels)
         {
             _configuration = configuration;
+            _messageGetChannel = new MessageGetConnection(_configuration);
+            _messageFactory = messageFactory;
+            _messageChannel = messageChanels;
+
         }
 
-        private void InititalBus(MessageChanel messageChanel)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            ConnectionFactory factory = new ConnectionFactory();
-            factory.HostName = _configuration["RabbitMQHost"];
-            factory.Port = Convert.ToInt32(_configuration["RabbitMQPort"]);
+            foreach (var item in _messageChannel)
+            {
+                if (item.RoutingKey == null! || item.QueueName == null || item.ExchangeName == null!)
+                {
+                    continue;
+                }
 
-            _connection = factory.CreateConnection();
-            _channel = _connection.CreateModel();
+                _channel = _messageGetChannel.InititalBus(item);
+                var consumer = new EventingBasicConsumer(_channel);
+                consumer.Received += async (sender, args) =>
+                {
+                    var body = System.Text.Encoding.UTF8.GetString(args.Body.ToArray());
+                    await _messageFactory.ProcessMessage(body);
+                };
 
-            _channel.QueueDeclare(messageChanel.QueueName, false, false, false, null!);
-            _channel.ExchangeDeclare(messageChanel.ExchangeName, ExchangeType.Direct);
-            _channel.QueueBind(messageChanel.QueueName, messageChanel.ExchangeName, messageChanel.RoutingKey);
+                _channel.BasicConsume(item.QueueName, true, consumer);
+            }
+            await Task.CompletedTask;
         }
-        //public Task<string> SubcribeMessageBroker(MessageChanel messageChanel, CancellationToken stoppingToken)
-        //{
-        //    stoppingToken.ThrowIfCancellationRequested();
-        //    InititalBus(messageChanel);
-
-        //    var consumer = new EventingBasicConsumer(_channel);
-        //}
 
     }
 }

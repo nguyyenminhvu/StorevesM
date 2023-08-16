@@ -15,8 +15,8 @@
         public const string UpdateQuantityResProduct = "update-quantity-res-product";
         public const string UpdateQuantityReqProduct = "update-quantity-req-product";
 
-        public const string ClearCartItem = "clear-cart-item";
-
+        public const string ClearCartItemRequest = "clear-cart-item-request";
+        public const string ClearCartItemResponse = "clear-cart-item-response";
 
     }
 
@@ -27,9 +27,9 @@
 
         public const string GetProductDirect = "GetProductDirect";
         public const string GetProductsDirect = "GetProductsDirect";
-        public const string UpdateQuantityProduct = "UpdateQuantityProduct";
+        public const string UpdateQuantityProductDirect = "UpdateQuantityProductDirect";
 
-        public const string ClearCartItem = "ClearCartItem";
+        public const string ClearCartItemDirect = "ClearCartItem";
     }
 
     public static class Queue

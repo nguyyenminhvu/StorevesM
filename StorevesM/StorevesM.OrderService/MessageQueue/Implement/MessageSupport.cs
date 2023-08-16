@@ -44,7 +44,7 @@ namespace StorevesM.OrderService.MessageQueue.Implement
 
         private void InitialBroker(MessageRaw raw)
         {
-            if (!_connection.IsOpen)
+            if (_connection == null! || !_connection.IsOpen)
             {
                 InitialBus();
             }
@@ -60,62 +60,7 @@ namespace StorevesM.OrderService.MessageQueue.Implement
             var body = Encoding.UTF8.GetBytes(rawSerial);
             _channel.BasicPublish(raw.ExchangeName, raw.RoutingKey, null!, body);
         }
-
-        private void ChangeExchangeListen(MessageRaw raw)
-        {
-            raw.QueueName = Queue.GetCategoryResponseQueue;
-            raw.RoutingKey = RoutingKey.GetCategoryResponse;
-            raw.ExchangeName = Exchange.GetCategoryDirect;
-            InitialBroker(raw);
-        }
-
-
-        #region CheckCategoryExist
-        //public async Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
-        //{
-        //    try
-        //    {
-        //        cancellation.ThrowIfCancellationRequested();
-
-        //        SendRequest(raw);
-        //        ChangeExchangeListen(raw);
-
-        //        var tcs = new TaskCompletionSource<bool>();
-
-        //        var consumer = new EventingBasicConsumer(_channel);
-        //        consumer.Received += (sender, ea) =>
-        //        {
-        //            var response = Encoding.UTF8.GetString(ea.Body.ToArray());
-        //            var category = response.DeserializeToCategoryDTO();
-        //            tcs.SetResult(category != null!);
-        //        };
-
-        //        _channel.BasicConsume(queue: raw.QueueName, autoAck: true, consumer: consumer);
-
-        //        // Waiting 1 in 2 complete or 1 in 2 fail (take the other task without fail)=> waitResult is new Task complete from 2 Task inside WhenAny
-        //        // tcs.Task waiting response
-        //        // Task.Delay mean cancn
-        //        var waitResult = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
-
-        //        // waitResult = tcs.Task when tcs.Task complete(responsed)
-        //        if (waitResult == tcs.Task)
-        //        {
-        //            return tcs.Task.Result;
-        //        }
-        //        else
-        //        {
-        //            Console.WriteLine("Timeout occurred while waiting for response.");
-        //            return false;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine("Error in MessageSupport at CheckCategoryExist: " + ex.Message);
-        //        return false;
-        //    }
-        //}
-        #endregion
-
+       
         public async Task<CategoryDTO> GetCategory(MessageRaw raw, CancellationToken cancellation = default)
         {
             try
@@ -123,7 +68,10 @@ namespace StorevesM.OrderService.MessageQueue.Implement
                 cancellation.ThrowIfCancellationRequested();
 
                 SendRequest(raw);
-                ChangeExchangeListen(raw);
+                raw.QueueName = Queue.GetCategoryResponseQueue;
+                raw.RoutingKey = RoutingKey.GetCategoryResponse;
+                raw.ExchangeName = Exchange.GetCategoryDirect;
+                InitialBroker(raw);
 
                 var taskcs = new TaskCompletionSource<CategoryDTO>();
                 var consumer = new EventingBasicConsumer(_channel);
@@ -174,7 +122,8 @@ namespace StorevesM.OrderService.MessageQueue.Implement
                 consumer.Received += (sender, args) =>
                 {
                     var body = System.Text.Encoding.UTF8.GetString(args.Body.ToArray());
-                    taskCompletionSrc.SetResult(body.DeserializeProductsDTO());
+                    var messageRaw = body.DeserializeToMessageRaw();
+                    taskCompletionSrc.SetResult(messageRaw.Message.DeserializeProductsDTO());
                 };
                 _channel.BasicConsume(raw.QueueName, true, consumer);
 
@@ -209,7 +158,7 @@ namespace StorevesM.OrderService.MessageQueue.Implement
 
                 raw.RoutingKey = RoutingKey.UpdateQuantityResProduct;
                 raw.QueueName = Queue.UpdateQuantityProductResQ;
-                raw.ExchangeName = Exchange.UpdateQuantityProduct;
+                raw.ExchangeName = Exchange.UpdateQuantityProductDirect;
                 InitialBroker(raw);
 
                 var taskComletionSrc = new TaskCompletionSource<bool>();
@@ -217,7 +166,8 @@ namespace StorevesM.OrderService.MessageQueue.Implement
                 consumer.Received += (s, e) =>
                 {
                     var body = System.Text.Encoding.UTF8.GetString(e.Body.ToArray());
-                    taskComletionSrc.SetResult(body == "true");
+                    var messageRaw = body.DeserializeToMessageRaw();
+                    taskComletionSrc.SetResult(messageRaw.Message == "true");
                 };
 
                 _channel.BasicConsume(raw.QueueName, true, consumer);
@@ -241,6 +191,52 @@ namespace StorevesM.OrderService.MessageQueue.Implement
                 Console.WriteLine("Error in MessageSupport at UpdateQuantityProduct: " + ex.Message);
                 Dispose();
                 throw;
+            }
+        }
+
+        public async Task<bool> ClearCartItem(MessageRaw raw, CancellationToken cancellation = default)
+        {
+            try
+            {
+                cancellation.ThrowIfCancellationRequested();
+                SendRequest(raw);
+
+                raw.ExchangeName = Exchange.ClearCartItemDirect;
+                raw.QueueName = Queue.ClearCartItemResQueue;
+                raw.RoutingKey = RoutingKey.ClearCartItemResponse;
+                InitialBroker(raw);
+
+                var taskCompletionSrc = new TaskCompletionSource<bool>();
+                var consumer = new EventingBasicConsumer(_channel);
+                consumer.Received += (s, e) =>
+                {
+                    var body = System.Text.Encoding.UTF8.GetString(e.Body.ToArray());
+                    var messageRaw = body.DeserializeToMessageRaw();
+                    taskCompletionSrc.SetResult(messageRaw.Message == "true");
+                };
+
+                _channel.BasicConsume(raw.QueueName, true, consumer);
+
+                var newTask = await Task.WhenAny(taskCompletionSrc.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
+
+                if (newTask == taskCompletionSrc.Task)
+                {
+                    var result = taskCompletionSrc.Task.Result;
+                    Dispose();
+                    return result;
+                }
+                else
+                {
+                    Dispose();
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in MessageSupport at ClearCartItem: " + ex.Message);
+                Dispose();
+                return false;
             }
         }
     }
