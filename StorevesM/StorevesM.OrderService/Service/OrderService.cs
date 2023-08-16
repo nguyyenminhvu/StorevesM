@@ -4,22 +4,26 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StorevesM.OrderService.Entity;
 using StorevesM.OrderService.Enum;
+using StorevesM.OrderService.MessageQueue.Interface;
 using StorevesM.OrderService.Model.DTOMessage;
 using StorevesM.OrderService.Model.Request;
 using StorevesM.OrderService.Model.View;
 using StorevesM.OrderService.Repository;
+using StorevesM.ProductService.ProductExtension;
 
 namespace StorevesM.OrderService.Service
 {
     public class OrderService : IOrderService
     {
+        private readonly IMessageSupport _messageSupport;
         private readonly IMapper _mapper;
         private readonly OrderDbContext _context;
         private readonly Repository<Order> _orderRepository;
         private readonly Repository<OrderDetail> _orderDetailRepository;
 
-        public OrderService(OrderDbContext orderDbContext, IMapper mapper)
+        public OrderService(OrderDbContext orderDbContext, IMapper mapper, IMessageSupport messageSupport)
         {
+            _messageSupport = messageSupport;
             _mapper = mapper;
             _context = orderDbContext;
             _orderRepository = new Repository<Order>(_context);
@@ -28,7 +32,14 @@ namespace StorevesM.OrderService.Service
         public async Task<OrderViewModel> CreateOrder(CartDTO cart)
         {
             // Get products from ProductService
-            var products = new List<ProductDTO>();
+            var products = await _messageSupport.GetProducts(new Model.Message.MessageRaw
+            {
+                ExchangeName = Exchange.GetProductsDirect,
+                Message = "get",
+                QueueName =
+                Queue.GetProductsRequestQueue,
+                RoutingKey = RoutingKey.GetProductsRequest
+            });
 
             Order order = new Order();
             order.CustomerId = cart.CustomerId;
@@ -45,7 +56,10 @@ namespace StorevesM.OrderService.Service
             }
 
             // Update quantity product on ProductService (CartDTO)
+            var updated = await _messageSupport.UpdateQuantityProduct(new Model.Message.MessageRaw { Message = cart.SerializeCartDTO(), QueueName = Queue.UpdateQuantityProductReqQ, ExchangeName = Exchange.UpdateQuantityProduct, RoutingKey = RoutingKey.UpdateQuantityReqProduct });
+
             // Clear cartItem on CartItem (CartDTO)
+            // *** Not yet ***
 
             return await GetOrder(order.Id);
         }

@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using StorevesM.ProductService.Entity;
 using StorevesM.ProductService.Enum;
 using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.Model.DTOMessage;
 using StorevesM.ProductService.Model.Message;
 using StorevesM.ProductService.Model.Request;
 using StorevesM.ProductService.Model.View;
@@ -64,34 +65,34 @@ namespace StorevesM.ProductService.Service
         public async Task<List<ProductViewModel>> GetProducts(ProductFilterModel productFilter)
         {
             var queryable = _productRepository.GetAll().Where(x => x.IsActive);
-
-            if (productFilter.CategoryId != null!)
+            if (productFilter != null)
             {
-                var categoryCheck = await _messageSupport.GetCategory(new MessageRaw { QueueName = Queue.GetCategoryRequestQueue, ExchangeName = Exchange.GetCategoryDirect, RoutingKey = RoutingKey.GetCategoryRequest, Message = JsonConvert.SerializeObject(productFilter.CategoryId) });
-                if (categoryCheck == null!)
+                if (productFilter.CategoryId != null!)
+                {
+                    var categoryCheck = await _messageSupport.GetCategory(new MessageRaw { QueueName = Queue.GetCategoryRequestQueue, ExchangeName = Exchange.GetCategoryDirect, RoutingKey = RoutingKey.GetCategoryRequest, Message = JsonConvert.SerializeObject(productFilter.CategoryId) });
+                    if (categoryCheck == null!)
+                    {
+                        return null!;
+                    }
+                    queryable = queryable.Where(x => x.CategoryId == productFilter.CategoryId);
+                }
+                if (queryable.Count() <= 0)
                 {
                     return null!;
                 }
-                queryable = queryable.Where(x => x.CategoryId == productFilter.CategoryId);
+                if (productFilter.Name != null && productFilter.Name != string.Empty)
+                {
+                    queryable = queryable.Where(x => x.Name.ToLower().Contains(productFilter.Name.ToLower()));
+                }
+                if (productFilter.PriceFrom.HasValue)
+                {
+                    queryable = queryable.Where(x => x.Price >= productFilter.PriceFrom);
+                }
+                if (productFilter.PriceTo.HasValue)
+                {
+                    queryable = queryable.Where(x => x.Price <= productFilter.PriceTo);
+                }
             }
-            if (queryable.Count() <= 0)
-            {
-                return null!;
-            }
-            if (productFilter.Name != null && productFilter.Name != string.Empty)
-            {
-                queryable = queryable.Where(x => x.Name.ToLower().Contains(productFilter.Name.ToLower()));
-            }
-            if (productFilter.PriceFrom.HasValue)
-            {
-                queryable = queryable.Where(x => x.Price >= productFilter.PriceFrom);
-            }
-            if (productFilter.PriceTo.HasValue)
-            {
-                queryable = queryable.Where(x => x.Price <= productFilter.PriceTo);
-            }
-
-
             if (queryable.Count() <= 0)
             {
                 return null!;
@@ -143,6 +144,30 @@ namespace StorevesM.ProductService.Service
             product.CategoryId = productUpdate.CategoryId ?? product.CategoryId;
             await _productRepository.SaveChangeAsync();
             return await GetProduct(id);
+        }
+
+        public async Task<bool> UpdateQuantityProduct(CartDTO cart)
+        {
+            if (cart != null)
+            {
+                foreach (var item in cart.CartItems)
+                {
+                    var product = await _productRepository.FirstOrDefaultAsync(x => x.Id == item.ProductId);
+                    if (product != null)
+                    {
+                        if (product.Quantity >= item.Quantity)
+                        {
+                            product.Quantity = product.Quantity - item.Quantity;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            return false;
         }
     }
 }

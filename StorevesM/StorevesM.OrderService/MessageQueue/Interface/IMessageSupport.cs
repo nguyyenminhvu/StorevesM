@@ -7,5 +7,7 @@ namespace StorevesM.OrderService.MessageQueue.Interface
     {
         // Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default);
         Task<CategoryDTO> GetCategory(MessageRaw raw, CancellationToken cancellation = default);
+        Task<bool> UpdateQuantityProduct(MessageRaw raw, CancellationToken cancellation = default);
+        Task<List<ProductDTO>> GetProducts(MessageRaw raw, CancellationToken cancellationToken = default)
     }
 }

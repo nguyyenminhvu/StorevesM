@@ -1,7 +1,8 @@
+using StorevesM.CategoryService.MessageQueue.Interface;
+using StorevesM.OrderService.ApplicationConfig;
 using StorevesM.ProductService.ApplicationConfig;
 
-
-    var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
@@ -10,6 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.InjectDependency(builder.Configuration);
+builder.Services.SubcribeMessageQueue(builder.Configuration, builder.Services.BuildServiceProvider().GetService<IMessageFactory>()!);
 
 var app = builder.Build();
 

@@ -1,21 +1,27 @@
 ﻿using RabbitMQ.Client;
-using StorevesM.OrderService.MessageQueue.Interface;
-using StorevesM.OrderService.Model.Message;
+using StorevesM.CategoryService.Model.Message;
 
-namespace StorevesM.OrderService.MessageQueue.Implement
+namespace StorevesM.CategoryService.MessageQueue
 {
-    public class MessageSubcribe : IMessageSubcribe
+    public class MessageGetConnection : IDisposable
     {
         private readonly IConfiguration _configuration;
         private IConnection _connection;
         private IModel _channel;
+        private MessageChanel _messageChanel = new();
 
-        public MessageSubcribe(IConfiguration configuration)
+        public MessageGetConnection(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        private void InititalBus(MessageChanel messageChanel)
+        public void Dispose()
+        {
+            _channel?.Dispose();
+            _connection?.Dispose();
+        }
+
+        public IModel InititalBus(MessageChanel messageChanel)
         {
             ConnectionFactory factory = new ConnectionFactory();
             factory.HostName = _configuration["RabbitMQHost"];
@@ -27,8 +33,9 @@ namespace StorevesM.OrderService.MessageQueue.Implement
             _channel.QueueDeclare(messageChanel.QueueName, false, false, false, null!);
             _channel.ExchangeDeclare(messageChanel.ExchangeName, ExchangeType.Direct);
             _channel.QueueBind(messageChanel.QueueName, messageChanel.ExchangeName, messageChanel.RoutingKey);
-        }
 
+            return _channel;
+        }
 
     }
 }

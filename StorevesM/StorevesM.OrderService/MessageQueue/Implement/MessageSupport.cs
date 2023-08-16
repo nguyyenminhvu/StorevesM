@@ -116,7 +116,6 @@ namespace StorevesM.OrderService.MessageQueue.Implement
         //}
         #endregion
 
-
         public async Task<CategoryDTO> GetCategory(MessageRaw raw, CancellationToken cancellation = default)
         {
             try
@@ -156,6 +155,92 @@ namespace StorevesM.OrderService.MessageQueue.Implement
             {
                 Console.WriteLine("Error in MessageSupport at GetCategory: " + ex.Message);
                 return null!;
+            }
+        }
+
+        public async Task<List<ProductDTO>> GetProducts(MessageRaw raw, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                SendRequest(raw);
+                raw.ExchangeName = Exchange.GetProductsDirect;
+                raw.QueueName = Queue.GetProductsResponseQueue;
+                raw.RoutingKey = RoutingKey.GetProductsResponse;
+                InitialBroker(raw);
+
+                var taskCompletionSrc = new TaskCompletionSource<List<ProductDTO>>();
+                var consumer = new EventingBasicConsumer(_channel);
+                consumer.Received += (sender, args) =>
+                {
+                    var body = System.Text.Encoding.UTF8.GetString(args.Body.ToArray());
+                    taskCompletionSrc.SetResult(body.DeserializeProductsDTO());
+                };
+                _channel.BasicConsume(raw.QueueName, true, consumer);
+
+                var newTask = await Task.WhenAny(taskCompletionSrc.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellationToken));
+
+                if (taskCompletionSrc.Task == newTask)
+                {
+                    var result = taskCompletionSrc.Task.Result;
+                    Dispose();
+                    return result;
+                }
+                else
+                {
+                    Dispose();
+                    return null!;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in MessageSupport at GetProducts: " + ex.Message);
+                Dispose();
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateQuantityProduct(MessageRaw raw, CancellationToken cancellation = default)
+        {
+            try
+            {
+                cancellation.ThrowIfCancellationRequested();
+                SendRequest(raw);
+
+                raw.RoutingKey = RoutingKey.UpdateQuantityResProduct;
+                raw.QueueName = Queue.UpdateQuantityProductResQ;
+                raw.ExchangeName = Exchange.UpdateQuantityProduct;
+                InitialBroker(raw);
+
+                var taskComletionSrc = new TaskCompletionSource<bool>();
+                var consumer = new EventingBasicConsumer(_channel);
+                consumer.Received += (s, e) =>
+                {
+                    var body = System.Text.Encoding.UTF8.GetString(e.Body.ToArray());
+                    taskComletionSrc.SetResult(body == "true");
+                };
+
+                _channel.BasicConsume(raw.QueueName, true, consumer);
+
+                var newTask = await Task.WhenAny(taskComletionSrc.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
+
+                if (newTask == taskComletionSrc.Task)
+                {
+                    var result = taskComletionSrc.Task.Result;
+                    Dispose();
+                    return result;
+                }
+                else
+                {
+                    Dispose();
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in MessageSupport at UpdateQuantityProduct: " + ex.Message);
+                Dispose();
+                throw;
             }
         }
     }

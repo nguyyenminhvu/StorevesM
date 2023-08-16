@@ -13,5 +13,14 @@ namespace StorevesM.ProductService.ProductExtension
             }
             return null!;
         }
+
+        public static CartDTO DeserializeCartDTO(this string cartJson)
+        {
+            if (cartJson != null)
+            {
+                return JsonConvert.DeserializeObject<CartDTO>(cartJson)!;
+            }
+            return null!;
+        }
     }
 }
