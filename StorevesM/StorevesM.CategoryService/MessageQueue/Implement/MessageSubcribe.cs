@@ -53,9 +53,9 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 var body = System.Text.Encoding.UTF8.GetString(e.Body.ToArray());
                 await _messageFactory.ProcessMessage(body);
             };
-            var consumerTag = _channel.BasicConsume(queue: _messageChanel.QueueName, autoAck: true, consumer: _consumer);
-            // _channel.BasicCancel(consumerTag);
-            // Disposed();
+
+            _channel.BasicConsume(queue: _messageChanel.QueueName, autoAck: true, consumer: _consumer);
+
             return Task.CompletedTask;
         }
     }

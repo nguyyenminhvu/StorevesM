@@ -1,42 +1,46 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using StorevesM.CategoryService.MessageQueue.Interface;
 using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.Message;
 
 namespace StorevesM.ProductService.MessageQueue.Implement
 {
-    public class GetProductsSubcribe : BackgroundService, IMessageSubcribe, IDisposable
+    public class MessageSubcribe : BackgroundService, IMessageSubcribe
     {
-        private readonly IConfiguration _configuration;
-        private IConnection _connection;
+        private readonly IMessageFactory _messageFactory;
+        private readonly MessageGetConnection _getChannel;
         private IModel _channel;
+        private readonly IEnumerable<MessageChanel> _messageChannels;
 
-        public GetProductsSubcribe(IConfiguration configuration)
+        public MessageSubcribe(IMessageFactory messageFactory, IConfiguration configuration, IEnumerable<MessageChanel> messageChanels)
         {
-            _configuration = configuration;
+            _messageFactory = messageFactory;
+            _getChannel = new MessageGetConnection(configuration);
+            _messageChannels = messageChanels;
         }
 
-        private void InititalBus(MessageChanel messageChanel)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            ConnectionFactory factory = new ConnectionFactory();
-            factory.HostName = _configuration["RabbitMQHost"];
-            factory.Port = Convert.ToInt32(_configuration["RabbitMQPort"]);
+            foreach (var item in _messageChannels)
+            {
+                if (item.RoutingKey == null || item.QueueName == null || item.ExchangeName == null)
+                {
+                    continue;
+                }
+                _channel = _getChannel.InititalBus(item);
 
-            _connection = factory.CreateConnection();
-            _channel = _connection.CreateModel();
+                var consumer = new EventingBasicConsumer(_channel);
+                consumer.Received += async (sender, ea) =>
+                {
+                    var body = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
+                    await _messageFactory.ProcessMessage(body);
+                };
 
-            _channel.QueueDeclare(messageChanel.QueueName, false, false, false, null!);
-            _channel.ExchangeDeclare(messageChanel.ExchangeName, ExchangeType.Direct);
-            _channel.QueueBind(messageChanel.QueueName, messageChanel.ExchangeName, messageChanel.RoutingKey);
-        }
-        private void Disposed()
-        {
-            _channel?.Dispose();
-            _connection?.Dispose();
-        }
-
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            throw new NotImplementedException();
+                _channel.BasicConsume(item.QueueName, true, consumer);
+            }
+            await Task.CompletedTask;
         }
     }
+
 }

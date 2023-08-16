@@ -1,5 +1,4 @@
 ﻿using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 using StorevesM.CategoryService.Enum;
 using StorevesM.CategoryService.Model.Message;
 using StorevesM.CategoryService.Service;

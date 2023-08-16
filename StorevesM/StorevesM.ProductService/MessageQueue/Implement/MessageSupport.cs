@@ -8,6 +8,7 @@ using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.DTOMessage;
 using StorevesM.ProductService.Model.Message;
 using StorevesM.ProductService.ProductExtension;
+using StorevesM.ProductService.Service;
 using System.Text;
 using System.Threading.Channels;
 
@@ -17,10 +18,12 @@ namespace StorevesM.ProductService.MessageQueue.Implement
     {
         private IConnection _connection;
         private IModel _channel;
+        private readonly IServiceScopeFactory _scopeService;
         private readonly IConfiguration _configuration;
 
-        public MessageSupport(IConfiguration configuration)
+        public MessageSupport(IConfiguration configuration, IServiceScopeFactory serviceScope)
         {
+            _scopeService = serviceScope;
             _configuration = configuration;
             InitialBus();
         }
@@ -72,6 +75,7 @@ namespace StorevesM.ProductService.MessageQueue.Implement
             InitialBroker(raw);
         }
 
+        #region CheckCategoryExist
         //public async Task<bool> CheckCategoryExist(MessageRaw raw, CancellationToken cancellation = default)
         //{
         //    try
@@ -115,7 +119,9 @@ namespace StorevesM.ProductService.MessageQueue.Implement
         //        return false;
         //    }
         //}
+        #endregion
 
+        #region SendAndListenResponseGetCategory
         public async Task<CategoryDTO> GetCategory(MessageRaw raw, CancellationToken cancellation = default)
         {
             try
@@ -157,5 +163,50 @@ namespace StorevesM.ProductService.MessageQueue.Implement
                 return null!;
             }
         }
+        #endregion
+
+        public async Task ResponseGetProducts(MessageRaw raw, CancellationToken cancellation = default)
+        {
+            try
+            {
+                cancellation.ThrowIfCancellationRequested();
+                using (var _scope = _scopeService.CreateScope())
+                {
+                    var productService = _scope.ServiceProvider.GetRequiredService<IProductService>();
+                    var products = await productService.GetProducts();
+                    raw.QueueName = Queue.GetProductsResponseQueue;
+                    raw.ExchangeName = Exchange.GetProductsDirect;
+                    raw.RoutingKey = RoutingKey.GetProductsResponse;
+                    SendRequest(raw);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in MessageSupport at ResponseGetProducts: " + ex.Message);
+            }
+        }
+
+        public async Task ResponseUpdateQuantity(MessageRaw raw, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                using (var _scope = _scopeService.CreateScope())
+                {
+                    var productService = _scope.ServiceProvider.GetRequiredService<IProductService>();
+                    var updated = await productService.UpdateQuantityProduct(raw.Message.DeserializeCartDTO());
+                    raw.Message = updated == true ? "true" : "false";
+                    raw.QueueName = Queue.UpdateQuantityProductResQ;
+                    raw.ExchangeName = Exchange.UpdateQuantityProduct;
+                    raw.RoutingKey = RoutingKey.UpdateQuantityResProduct;
+                    SendRequest(raw);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in MessageSupport at  ResponseClearCartItem: " + ex.Message);
+            }
+        }
+
     }
 }

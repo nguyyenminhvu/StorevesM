@@ -21,6 +21,9 @@ namespace StorevesM.CategoryService.MessageQueue.Implement
             switch (message.RoutingKey)
             {
                 case RoutingKey.GetCategoryRequest: /*await _messageSupport.ResponseCheckCategoryExist(message);*/ break;
+                case RoutingKey.UpdateQuantityReqProduct: await _messageSupport.ResponseUpdateQuantity(message); break;
+                case RoutingKey.ClearCartItem: /*await _messageSupport.ResponseCheckCategoryExist(message);*/ break;
+                case RoutingKey.GetProductsRequest: await _messageSupport.ResponseGetProducts(message); break;
             }
         }
     }

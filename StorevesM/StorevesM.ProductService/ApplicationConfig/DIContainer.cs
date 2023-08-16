@@ -1,7 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using StorevesM.CategoryService.MessageQueue.Implement;
+using StorevesM.CategoryService.MessageQueue.Interface;
 using StorevesM.ProductService.Entity;
 using StorevesM.ProductService.MessageQueue.Implement;
 using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.Model.Message;
 using StorevesM.ProductService.Profiles;
 using StorevesM.ProductService.Service;
 
@@ -13,7 +16,9 @@ namespace StorevesM.ProductService.ApplicationConfig
         {
             services.AddDbContext<ProductDbContext>(x => x.UseSqlServer(configuration.GetConnectionString("ProductDb")));
             services.AddScoped<IProductService, ProductService.Service.ProductService>();
-            services.AddScoped<IMessageSupport, MessageSupport>();
+            services.AddSingleton<IMessageSupport, MessageSupport>();
+            services.AddSingleton<IMessageFactory, MessageFactory>();
+            services.AddSingleton<MessageChanel>();
             services.AddAutoMapper(typeof(ProfileMapper));
         }
     }
