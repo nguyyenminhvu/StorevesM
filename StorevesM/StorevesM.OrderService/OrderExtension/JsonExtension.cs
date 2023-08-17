@@ -2,7 +2,7 @@
 using StorevesM.OrderService.Model.DTOMessage;
 using StorevesM.OrderService.Model.Message;
 
-namespace StorevesM.ProductService.ProductExtension
+namespace StorevesM.OrderService.ProductExtension
 {
     public static class JsonExtension
     {

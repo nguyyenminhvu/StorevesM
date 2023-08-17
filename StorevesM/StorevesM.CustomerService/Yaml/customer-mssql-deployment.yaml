@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-mssql-deployment
+  namespace: storeves-pj
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-mssql
+  template:
+    metadata:
+      labels:
+        app: customer-mssql
+    spec: 
+      containers:
+        - name: customer-mssql
+          image: mcr.microsoft.com/mssql/server:2019-latest
+          ports:
+            - containerPort: 1433
+          env:
+            - name: MSSQL_PID
+              value: "Express"
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: customer-mssql-secret
+                  key: SA_PASSWORD
+          volumeMounts:
+            - mountPath: /var/opt/mssql/data
+              name: customer-volume-mssql
+      volumes:
+        - name: customer-volume-mssql
+          persistentVolumeClaim:
+            claimName: customer-volume-mssql-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-mssql-clusterip-service
+  namespace: storeves-pj
+spec:
+  type: ClusterIP
+  selector:
+    app: customer-mssql
+  ports:
+    - name: customer-mssql
+      protocol: TCP
+      port: 1004
+      targetPort: 1433
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-mssql-loadbalancer
+  namespace: storeves-pj
+spec:
+  type: LoadBalancer
+  selector:
+    app: customer-mssql
+  ports:
+    - name: customer-mssql
+      protocol: TCP
+      port: 1004
+      targetPort: 1433

@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using StorevesM.OrderService.Model.DTOMessage;
 using StorevesM.OrderService.Service;
 
 namespace StorevesM.OrderService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/orders")]
     [ApiController]
     public class OrderController : ControllerBase
     {
@@ -15,46 +16,61 @@ namespace StorevesM.OrderService.Controllers
             _orderService = orderService;
         }
 
-        [HttpGet("demo-get-products")]
-        public async Task<IActionResult> DemoGetProducts()
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder([FromQuery] CartDTO cartDTO)
         {
             try
             {
-                var products = await _orderService.DemoGetProduct();
-                return Ok(products);
+                var rs = await _orderService.CreateOrder(cartDTO);
+                return rs != null ? Ok(rs) : BadRequest();
             }
             catch (Exception ex)
             {
-                throw;
+                return BadRequest(ex.Message);
             }
         }
 
-        [HttpGet("demo-update-quantity-products")]
-        public async Task<IActionResult> DemoUpdateQuantityProduct()
+        [HttpGet]
+        public async Task<IActionResult> GetOrders()
         {
             try
             {
-                var updated = await _orderService.DemoUpdateQuantityProduct();
-                return updated ? Ok() : BadRequest();
+                var rs = await _orderService.GetOrders();
+                return rs != null ? Ok(rs) : BadRequest();
             }
             catch (Exception ex)
             {
-                throw;
+                return BadRequest(ex.Message);
             }
         }
 
-        [HttpGet("demo-clear-cartitem")]
-        public async Task<IActionResult> DemoClearCartItem()
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetOrder([FromRoute] int id)
         {
             try
             {
-                var updated = await _orderService.DemoClearCartItem();
-                return updated ? Ok() : BadRequest();
+                var rs = await _orderService.GetOrder(id);
+                return rs != null ? Ok(rs) : BadRequest();
             }
             catch (Exception ex)
             {
-                throw;
+                return BadRequest(ex.Message);
             }
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateOrder([FromRoute] int id, [FromQuery] string status)
+        {
+            try
+            {
+                var rs = await _orderService.UpdateOrder(new Model.Request.OrderUpdateModel { Id = id, Status = status });
+                return rs != null ? Ok(rs) : BadRequest();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }
