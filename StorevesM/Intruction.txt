@@ -1,8 +1,12 @@
 namespace: storeves-pj
-SA_PASSWORD: Cat3gory!
-SA_PASSWORD: Produc1!
-SA_PASSWORD: Car1Serv!ce
-SA_PASSWORD: OrderServ!ce
+
+SA_PASSWORD: Cat3gory! - 1000
+SA_PASSWORD: Produc1! - 1001
+SA_PASSWORD: Car1Serv!ce - 1002
+SA_PASSWORD: OrderServ!ce - 1003
+SA_PASSWORD: Cust@m3r - 1004
+
+rabbitmq-management: 1200
 kubectl get secret -n storeves-pj
 kubectl get pod -n storeves-pj
 kubectl get deployment -n storeves-pj

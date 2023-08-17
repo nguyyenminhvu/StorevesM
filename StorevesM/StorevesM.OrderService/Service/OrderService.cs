@@ -8,8 +8,8 @@ using StorevesM.OrderService.MessageQueue.Interface;
 using StorevesM.OrderService.Model.DTOMessage;
 using StorevesM.OrderService.Model.Request;
 using StorevesM.OrderService.Model.View;
+using StorevesM.OrderService.ProductExtension;
 using StorevesM.OrderService.Repository;
-using StorevesM.ProductService.ProductExtension;
 
 namespace StorevesM.OrderService.Service
 {
@@ -40,12 +40,15 @@ namespace StorevesM.OrderService.Service
                 Queue.GetProductsRequestQueue,
                 RoutingKey = RoutingKey.GetProductsRequest
             });
-
+            if (products == null)
+            {
+                return null!;
+            }
             Order order = new Order();
             order.CustomerId = cart.CustomerId;
             order.Status = OrderStatus.Processing;
             await _orderRepository.AddAsync(order);
-
+            await _context.SaveChangesAsync();
             foreach (var item in cart.CartItems)
             {
                 if (item.Quantity > products.FirstOrDefault(x => x.Id == item.ProductId)!.Quantity)
@@ -61,7 +64,7 @@ namespace StorevesM.OrderService.Service
             // Clear cartitem on CartService (cartId)
             var cleaned = await _messageSupport.ClearCartItem(new Model.Message.MessageRaw { Message = cart.Id.ToString(), QueueName = Queue.ClearCartItemReqQueue, ExchangeName = Exchange.ClearCartItemDirect, RoutingKey = RoutingKey.ClearCartItemRequest });
 
-
+            await _context.SaveChangesAsync();
             return await GetOrder(order.Id);
         }
 

@@ -5,7 +5,7 @@ using StorevesM.OrderService.Enum;
 using StorevesM.OrderService.MessageQueue.Interface;
 using StorevesM.OrderService.Model.DTOMessage;
 using StorevesM.OrderService.Model.Message;
-using StorevesM.ProductService.ProductExtension;
+using StorevesM.OrderService.ProductExtension;
 using System.Text;
 
 namespace StorevesM.OrderService.MessageQueue.Implement
