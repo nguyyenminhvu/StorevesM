@@ -1,22 +1,27 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using StorevesM.CartService.Entity;
+using StorevesM.CartService.Enum;
+using StorevesM.CartService.Model.DTOMessage;
 using StorevesM.CartService.Model.Request;
 using StorevesM.CartService.Model.View;
 using StorevesM.CartService.Repository.Implement;
 using StorevesM.CartService.Service.Interface;
+using StorevesM.ProductService.MessageQueue.Interface;
 
 namespace StorevesM.CartService.Service.Implement
 {
     public class CartService : ICartService
     {
+        private readonly IMessageSupport _messageSupport;
         private readonly IMapper _mapper;
         private readonly CartServiceDbcontext _context;
         private readonly Repository<Cart> _cartRepository;
         private readonly Repository<CartItem> _cartItemRepository;
 
-        public CartService(CartServiceDbcontext cartServiceDbcontext, IMapper mapper)
+        public CartService(CartServiceDbcontext cartServiceDbcontext, IMapper mapper, IMessageSupport messageSupport)
         {
+            _messageSupport = messageSupport;
             _mapper = mapper;
             _context = cartServiceDbcontext;
             _cartRepository = new Repository.Implement.Repository<Cart>(_context);
@@ -34,6 +39,19 @@ namespace StorevesM.CartService.Service.Implement
                 return true;
             }
             return false;
+        }
+
+        public async Task<CustomerDTO> DemoCallCustomer(int id)
+        {
+            try
+            {
+                var customer = await _messageSupport.GetCustomer(new Model.Message.MessageRaw { ExchangeName = Exchange.GetCustomerDirect, QueueName = Queue.GetCustomerRequestQueue, RoutingKey = RoutingKey.GetCustomerRequest, Message = id.ToString() });
+                return customer != null! ? customer : null!;
+            }
+            catch (Exception ex)
+            {
+                return null!;
+            }
         }
 
         public async Task<CartViewModel> GetCart(int customerId)

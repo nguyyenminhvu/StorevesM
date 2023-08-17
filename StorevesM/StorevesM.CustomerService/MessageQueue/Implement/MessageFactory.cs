@@ -20,6 +20,7 @@ namespace StorevesM.CustomerService.MessageQueue.Implement
             switch (message.RoutingKey)
             {
                 case RoutingKey.GetCategoryRequest: /*await _messageSupport.ResponseCheckCategoryExist(message);*/ break;
+                case RoutingKey.GetCustomerRequest: await _messageSupport.ResponseGetCustomer(message); break;
             }
         }
     }

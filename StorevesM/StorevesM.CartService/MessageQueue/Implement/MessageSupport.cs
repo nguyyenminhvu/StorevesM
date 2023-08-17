@@ -1,9 +1,12 @@
 ﻿using Newtonsoft.Json;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using StorevesM.CartService.Enum;
+using StorevesM.CartService.Model.DTOMessage;
 using StorevesM.CartService.Model.Message;
 using StorevesM.CartService.Service.Interface;
 using StorevesM.ProductService.MessageQueue.Interface;
+using StorevesM.ProductService.ProductExtension;
 using System.Text;
 
 namespace StorevesM.CartService.MessageQueue.Implement
@@ -82,6 +85,53 @@ namespace StorevesM.CartService.MessageQueue.Implement
             {
                 Console.WriteLine("Error in MessageSupport at ClearCartItem: " + ex.Message);
 
+            }
+            finally
+            {
+                Dispose();
+            }
+        }
+
+        public async Task<CustomerDTO> GetCustomer(MessageRaw raw, CancellationToken cancellation = default)
+        {
+            try
+            {
+                cancellation.ThrowIfCancellationRequested();
+                SendRequest(raw);
+
+                raw.QueueName = Queue.GetCustomerResponseQueue;
+                raw.ExchangeName = Exchange.GetCustomerDirect;
+                raw.RoutingKey = RoutingKey.GetCustomerResponse;
+                InitialBroker(raw);
+
+                var taskCompletionSrc = new TaskCompletionSource<CustomerDTO>();
+                var consumer = new EventingBasicConsumer(_channel);
+                consumer.Received += (senders, eagr) =>
+                {
+                    var body = System.Text.Encoding.UTF8.GetString(eagr.Body.ToArray());
+                    var messageRaw = body.DeserializeToMessageRaw();
+                    taskCompletionSrc.SetResult(messageRaw.Message.DeserializeCustomerDTO());
+                };
+                _channel.BasicConsume(raw.QueueName, true, consumer);
+
+                var newTask = await Task.WhenAny(taskCompletionSrc.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellation));
+
+                if (newTask == taskCompletionSrc.Task)
+                {
+                    var result = taskCompletionSrc.Task.Result;
+                    Dispose();
+                    return result;
+                }
+                else
+                {
+                    Dispose();
+                    return null!;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return null!;
             }
             finally
             {
