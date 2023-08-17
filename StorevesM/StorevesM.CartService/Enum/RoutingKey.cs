@@ -18,6 +18,9 @@
         public const string ClearCartItemRequest = "clear-cart-item-request";
         public const string ClearCartItemResponse = "clear-cart-item-response";
 
+        public const string GetCustomerRequest = "get-customer-request";
+        public const string GetCustomerResponse = "get-customer-response";
+
     }
 
     public static class Exchange
@@ -30,6 +33,8 @@
         public const string UpdateQuantityProductDirect = "UpdateQuantityProductDirect";
 
         public const string ClearCartItemDirect = "ClearCartItem";
+
+        public const string GetCustomerDirect = "GetCustomerDirect";
     }
 
     public static class Queue
@@ -49,6 +54,9 @@
 
         public const string ClearCartItemResQueue = "ClearCartItemResQueue";
         public const string ClearCartItemReqQueue = "ClearCartItemReqQueue";
+
+        public const string GetCustomerRequestQueue = "GetCustomerRequestQueue";
+        public const string GetCustomerResponseQueue = "GetCustomerResponseQueue";
 
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using StorevesM.CustomerService.Model.DTOMessage;
 using StorevesM.CustomerService.Model.Message;
+using StorevesM.CustomerService.Model.View;
 
 namespace StorevesM.CustomerService.ProductExtension
 {
@@ -22,7 +23,6 @@ namespace StorevesM.CustomerService.ProductExtension
             }
             return null!;
         }
-
         public static string SerializeCartDTO(this CartDTO cart)
         {
             if (cart != null)
@@ -39,5 +39,15 @@ namespace StorevesM.CustomerService.ProductExtension
             }
             return null!;
         }
+
+        public static string SerializeMessageRaw(this CustomerViewModel customerDTO)
+        {
+            if (customerDTO != null)
+            {
+                return JsonConvert.SerializeObject(customerDTO);
+            }
+            return null!;
+        }
+
     }
 }

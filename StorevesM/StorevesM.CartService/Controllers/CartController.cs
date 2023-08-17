@@ -43,5 +43,19 @@ namespace StorevesM.CartService.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
+
+        [HttpGet("demo-get-customer-{id}")]
+        public async Task<IActionResult> GetCustomerDemo([FromRoute] int id)
+        {
+            try
+            {
+                var rs = await _cartService.DemoCallCustomer(id);
+                return rs != null ? Ok(rs) : BadRequest(new { Message = "Wrong wrong" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
     }
 }
