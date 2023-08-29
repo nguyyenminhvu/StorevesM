@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using StorevesM.ProductService.Entity;
 using StorevesM.ProductService.Enum;
+using StorevesM.ProductService.Grpc.Service.Interface;
 using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.DTOMessage;
 using StorevesM.ProductService.Model.Message;
@@ -15,13 +16,15 @@ namespace StorevesM.ProductService.Service
 {
     public class ProductService : IProductService
     {
+        private readonly ICategoryServiceSupport _categorySupport;
         private readonly IMessageSupport _messageSupport;
         private readonly ProductDbContext _context;
         private readonly IMapper _mapper;
         private readonly IRepository<Product> _productRepository;
 
-        public ProductService(ProductDbContext productDb, IMapper mapper, IMessageSupport messageSupport)
+        public ProductService(ProductDbContext productDb, IMapper mapper, IMessageSupport messageSupport, ICategoryServiceSupport categoryServiceSupport)
         {
+            _categorySupport=categoryServiceSupport;
             _messageSupport = messageSupport;
             _context = productDb;
             _mapper = mapper;
@@ -112,6 +115,12 @@ namespace StorevesM.ProductService.Service
             return true;
         }
 
+        public async Task<bool> SendGrpc()
+        {
+            var category = await _categorySupport.GetCategory(100);
+            return category != null ? true : false;
+        }
+
         public async Task<bool> SendMessageDemo()
         {
             try
@@ -131,10 +140,16 @@ namespace StorevesM.ProductService.Service
             }
         }
 
+        //Using Grpc
         public async Task<ProductViewModel> UpdateProduct(ProductUpdateModel productUpdate, int id)
         {
             var product = await _productRepository.FirstOrDefaultAsync(x => x.Id == id);
             if (product == null!)
+            {
+                return null!;
+            }
+            // Call with Grpc
+            if (productUpdate.CategoryId==null || await _categorySupport.GetCategory((int)productUpdate.CategoryId)==null)
             {
                 return null!;
             }

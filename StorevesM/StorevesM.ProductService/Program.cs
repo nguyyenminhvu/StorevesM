@@ -11,6 +11,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.InjectDependency(builder.Configuration);
 builder.Services.SubcribeMessageQueue(builder.Configuration, builder.Services.BuildServiceProvider().GetService<IMessageFactory>()!);
+builder.Services.AddGrpc();
 
 var app = builder.Build();
 

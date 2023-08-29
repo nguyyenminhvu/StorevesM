@@ -2,6 +2,8 @@
 using StorevesM.CategoryService.MessageQueue.Implement;
 using StorevesM.CategoryService.MessageQueue.Interface;
 using StorevesM.ProductService.Entity;
+using StorevesM.ProductService.Grpc.Service.Implement;
+using StorevesM.ProductService.Grpc.Service.Interface;
 using StorevesM.ProductService.MessageQueue.Implement;
 using StorevesM.ProductService.MessageQueue.Interface;
 using StorevesM.ProductService.Model.Message;
@@ -20,6 +22,7 @@ namespace StorevesM.ProductService.ApplicationConfig
             services.AddSingleton<IMessageFactory, MessageFactory>();
             services.AddSingleton<MessageChanel>();
             services.AddAutoMapper(typeof(ProfileMapper));
+            services.AddScoped<ICategoryServiceSupport, CategoryServiceSupport>();
         }
     }
 }

@@ -13,5 +13,6 @@ namespace StorevesM.ProductService.Service
         Task<bool> RemoveProduct(int id);
         Task<bool> SendMessageDemo();
         Task<bool> UpdateQuantityProduct(CartDTO cart);
+        Task<bool> SendGrpc();
     }
 }
