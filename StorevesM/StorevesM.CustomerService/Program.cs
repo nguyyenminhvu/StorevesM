@@ -11,6 +11,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.InjectDependency(builder.Configuration);
 builder.Services.SubcribeMessageQueue();
 
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

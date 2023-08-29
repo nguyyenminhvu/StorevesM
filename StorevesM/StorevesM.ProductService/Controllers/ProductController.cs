@@ -15,11 +15,11 @@ namespace StorevesM.ProductService.Controllers
             _productService = productService;
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> DemoSend()
-        //{
-        //    return Ok(await _productService.SendMessageDemo());
-        //}
+        [HttpGet("demo")]
+        public async Task<IActionResult> DemoSend()
+        {
+            return Ok(await _productService.SendGrpc());
+        }
 
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromQuery] ProductCreateModel pcm)

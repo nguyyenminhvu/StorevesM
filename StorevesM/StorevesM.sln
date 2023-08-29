@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorevesM.CategoryService",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorevesM.CartService", "StorevesM.CartService\StorevesM.CartService.csproj", "{A3D01318-11F8-4CAE-8EE2-9367867B74F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StorevesM.OrderService", "StorevesM.OrderService\StorevesM.OrderService.csproj", "{388A9DA2-9373-4FAF-BDFC-3F45AE7E5616}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorevesM.OrderService", "StorevesM.OrderService\StorevesM.OrderService.csproj", "{388A9DA2-9373-4FAF-BDFC-3F45AE7E5616}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

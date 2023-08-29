@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "StorevesM.ProductService.Grpc.Protos";
+
+service Category{
+	rpc GetCategory(GetCategoryRequest) returns (GetCategoryResponse);
+}
+
+message GetCategoryRequest{
+	int32 id=1;
+
+}
+message GetCategoryResponse{
+	int32 id=1;
+	string name=2;
+}
+
