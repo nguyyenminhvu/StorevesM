@@ -1,4 +1,5 @@
-﻿using StorevesM.CartService.Enum;
+﻿using StorevesM.CartService.Entity;
+using StorevesM.CartService.Enum;
 
 namespace StorevesM.CartService.Model.Message
 {
@@ -32,5 +33,6 @@ namespace StorevesM.CartService.Model.Message
             _mesageChanel.RoutingKey = CartService.Enum.RoutingKey.ClearCartItemRequest;
             return _mesageChanel;
         }
+
     }
 }

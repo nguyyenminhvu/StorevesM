@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: customer-volume-mssql-claim
-  namespace: storeves-pj
+  namespace: store
 spec:
   accessModes:
     - ReadWriteMany

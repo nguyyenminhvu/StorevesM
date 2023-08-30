@@ -12,6 +12,7 @@ namespace StorevesM.CartService.ApplicationConfig
             MessageChanel messageChanel = new();
 
             services.AddSingleton<MessageChanel>(messageChanel.ClearCartItem());
+            
 
         }
     }

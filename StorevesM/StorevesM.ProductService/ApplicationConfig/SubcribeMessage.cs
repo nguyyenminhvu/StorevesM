@@ -12,7 +12,6 @@ namespace StorevesM.ProductService.ApplicationConfig
             MessageChanel messageChanel = new();
             services.AddSingleton<MessageChanel>(messageChanel.GetProducts());
             services.AddSingleton<MessageChanel>(messageChanel.UpdateQuantityProduct());
-            services.AddSingleton<MessageChanel>(messageChanel.ClearCartItem());
 
         }
     }

@@ -102,13 +102,13 @@ namespace StorevesM.CustomerService.Service
 
         private string GetToken(Customer customer)
         {
-            var key = System.Text.Encoding.UTF8.GetBytes(_configuration["SecretKeytoken"]!);
+            var key = System.Text.Encoding.UTF8.GetBytes(_configuration["SecretKeyToken"]!);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new System.Security.Claims.ClaimsIdentity(new[] {
                     new Claim(JwtRegisteredClaimNames.Sub, customer.Username),
-                    new Claim("role", "customer"),
-                    new Claim("id", customer.Id.ToString())
+                    new Claim(ClaimTypes.Role, "customer"),
+                    new Claim("Id", customer.Id.ToString())
                 }),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
                 Expires = DateTime.UtcNow.AddDays(1)
