@@ -72,7 +72,7 @@ namespace StorevesM.CartService.MessageQueue.Implement
                 using (var _scope = _scopeFactory.CreateScope())
                 {
                     var cartService = _scope.ServiceProvider.GetRequiredService<ICartService>();
-                    var clean = await cartService.ClearCartItem(Convert.ToInt32(raw.Message));
+                    var clean = await cartService.ClearCartItem(raw.Message.DeserializeCartDTO());
 
                     raw.QueueName = Queue.ClearCartItemResQueue;
                     raw.ExchangeName = Exchange.ClearCartItemDirect;

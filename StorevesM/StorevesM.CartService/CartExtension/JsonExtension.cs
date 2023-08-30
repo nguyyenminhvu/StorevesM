@@ -30,5 +30,23 @@ namespace StorevesM.ProductService.ProductExtension
             }
             return null!;
         }
+
+        public static List<CartItemDTO> DeserializeListCartItemDTO(this string messageRawJson)
+        {
+            if (messageRawJson != null)
+            {
+                return JsonConvert.DeserializeObject<List<CartItemDTO>>(messageRawJson)!;
+            }
+            return null!;
+        }
+
+        public static CartDTO DeserializeCartDTO(this string messageRawJson)
+        {
+            if (messageRawJson != null)
+            {
+                return JsonConvert.DeserializeObject<CartDTO>(messageRawJson)!;
+            }
+            return null!;
+        }
     }
 }

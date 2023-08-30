@@ -8,7 +8,7 @@ namespace StorevesM.CartService.Service.Interface
     {
         Task<CartViewModel> GetCart(int customerId);
         Task<CartViewModel> UpdateCart(CartUpdateModel cum, int customerId);
-        Task<bool> ClearCartItem(int cartId);
+        Task<bool> ClearCartItem(CartDTO cartDTO);
         Task<CustomerDTO> DemoCallCustomer(int id);
     }
 }

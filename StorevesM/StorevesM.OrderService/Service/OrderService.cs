@@ -61,8 +61,12 @@ namespace StorevesM.OrderService.Service
             // Update quantity product on ProductService (CartDTO)
             var updated = await _messageSupport.UpdateQuantityProduct(new Model.Message.MessageRaw { Message = cart.SerializeCartDTO(), QueueName = Queue.UpdateQuantityProductReqQ, ExchangeName = Exchange.UpdateQuantityProductDirect, RoutingKey = RoutingKey.UpdateQuantityReqProduct });
 
+            if (!updated) { return null!; }
+
             // Clear cartitem on CartService (cartId)
-            var cleaned = await _messageSupport.ClearCartItem(new Model.Message.MessageRaw { Message = cart.Id.ToString(), QueueName = Queue.ClearCartItemReqQueue, ExchangeName = Exchange.ClearCartItemDirect, RoutingKey = RoutingKey.ClearCartItemRequest });
+            var cleaned = await _messageSupport.ClearCartItem(new Model.Message.MessageRaw { Message = cart.SerializeCartDTO(), QueueName = Queue.ClearCartItemReqQueue, ExchangeName = Exchange.ClearCartItemDirect, RoutingKey = RoutingKey.ClearCartItemRequest });
+
+            if (!cleaned) { return null!; }
 
             await _context.SaveChangesAsync();
             return await GetOrder(order.Id);

@@ -17,7 +17,7 @@ namespace StorevesM.OrderService.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromQuery] CartDTO cartDTO)
+        public async Task<IActionResult> CreateOrder(CartDTO cartDTO)
         {
             try
             {

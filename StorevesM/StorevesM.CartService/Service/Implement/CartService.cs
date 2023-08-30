@@ -28,13 +28,20 @@ namespace StorevesM.CartService.Service.Implement
             _cartItemRepository = new Repository.Implement.Repository<CartItem>(_context);
         }
 
-        public async Task<bool> ClearCartItem(int cartId)
+        public async Task<bool> ClearCartItem(CartDTO cartDTO)
         {
-            var cart = await _cartRepository.GetMany(x => x.Id == cartId).Include(x => x.CartItems).FirstOrDefaultAsync();
+            var cart = await _cartRepository.GetMany(x => x.Id == cartDTO.Id).Include(x => x.CartItems).FirstOrDefaultAsync();
             if (cart != null)
             {
-                var cartItem = cart.CartItems;
-                _cartItemRepository.RemoveRangeAsync(cartItem);
+                foreach (var item in cartDTO.CartItems)
+                {
+                    var cartItem = await _cartItemRepository.FirstOrDefaultAsync(x => x.ProductId == item.ProductId && x.CartId == cart.Id);
+                    if (cartItem != null)
+                    {
+                        cartItem.Quantity = cartItem.Quantity - item.Quantity;
+                        if (cartItem.Quantity <= 0)  _cartItemRepository.Remove(cartItem);
+                    }
+                }
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -60,6 +67,7 @@ namespace StorevesM.CartService.Service.Implement
             if (cart == null)
             {
                 await _cartRepository.AddAsync(new Cart { CustomerId = customerId });
+                await _context.SaveChangesAsync();
                 cart = await _cartRepository.FirstOrDefaultAsync(x => x.CustomerId == customerId, x => x.CartItems);
             }
             return cart != null ? _mapper.Map<CartViewModel>(cart) : null!;
